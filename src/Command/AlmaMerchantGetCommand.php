@@ -2,27 +2,14 @@
 
 namespace App\Command;
 
-use Alma\API\Client;
 use Alma\API\RequestError;
-use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
-class AlmaMerchantGetCommand extends Command
+class AlmaMerchantGetCommand extends AbstractAlmaCommand
 {
     protected static $defaultName = 'alma:merchant:get';
     protected static $defaultDescription = 'Get Merchant Informations';
-    /** @var Client */
-    private $alma;
-
-    /**
-     * @param Client $alma
-     * @required
-     */
-    public function setAlma(Client $alma)
-    {
-        $this->alma = $alma;
-    }
 
     protected function configure(): void
     {
@@ -35,6 +22,6 @@ class AlmaMerchantGetCommand extends Command
     {
         dump( $this->alma->merchants->me() );
 
-        return Command::SUCCESS;
+        return self::SUCCESS;
     }
 }
