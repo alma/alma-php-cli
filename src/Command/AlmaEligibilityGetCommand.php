@@ -6,6 +6,7 @@ use Alma\API\Endpoints\Results\Eligibility;
 use Alma\API\RequestError;
 use DateTime;
 use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
@@ -14,20 +15,47 @@ class AlmaEligibilityGetCommand extends AbstractAlmaCommand
     protected static $defaultName = 'alma:eligibility:get';
     protected static $defaultDescription = 'Add a short description for your command';
 
+    protected function configure()
+    {
+        $this
+            ->addOption(
+                'amount',
+                'a',
+                InputOption::VALUE_REQUIRED,
+                'Set amount in cents to test eligibility',
+                10000
+            )
+            ->addOption(
+                'installments',
+                'i',
+                InputOption::VALUE_IS_ARRAY | InputOption::VALUE_REQUIRED,
+                'Define installments to check',
+                [2, 3, 4, 10]
+            )
+        ;
+    }
+
     /**
      * @throws RequestError
      */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $io = new SymfonyStyle($input, $output);
-        $eligibilities = $this->alma->payments->eligibility(['payment' => [
-            'purchase_amount' => 10000,
-            'installments_count' => [
-                2,3,4,5,10,11,
+        $io            = new SymfonyStyle($input, $output);
+        $eligibilities = $this->alma->payments->eligibility(
+            [
+                'payment' => [
+                    'purchase_amount'    => $input->getOption('amount'),
+                    'installments_count' => array_map(
+                        function ($installment) {
+                            return intval($installment);
+                        },
+                        $input->getOption('installments')
+                    ),
+                ],
             ]
-        ]]);
-        $headers = ["Fee Count", "Eligible", "Plans", "Reason", "Min", "Max"];
-        $rows = [];
+        );
+        $headers       = ["Fee Count", "Eligible", "Plans", "Reason", "Min", "Max"];
+        $rows          = [];
         foreach ($eligibilities as $cnt => $eligibility) {
             $reasons        = $eligibility->getReasons();
             $constraints    = $eligibility->getConstraints();
@@ -37,17 +65,13 @@ class AlmaEligibilityGetCommand extends AbstractAlmaCommand
             $eligible       = $eligibility->isEligible() ? "Yes" : "No";
             $plans          = $this->formatPlans($eligibility);
             $rows[]         = [
-                $cnt."x",
+                $cnt . "x",
                 $eligible,
                 implode("\n", $plans),
                 $reasons ? implode(", ", $reasons) : "",
                 $this->formatMoney($minimum),
                 $this->formatMoney($maximum),
             ];
-            if (!$eligibility->isEligible()) {
-                dump($eligibility);
-            }
-
         }
         $io->table($headers, $rows);
 
