@@ -27,4 +27,4 @@ services:
     Alma\API\Client:
         arguments:
             - '%env(ALMA_API_KEY)%'
-            - { mode: '%env(ALMA_API_MODE)%' }
+            - { mode: '%env(ALMA_API_MODE)%', logger: '@logger' }
