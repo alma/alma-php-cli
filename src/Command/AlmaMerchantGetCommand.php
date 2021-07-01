@@ -36,7 +36,7 @@ class AlmaMerchantGetCommand extends AbstractAlmaCommand
 
             $fee_plans[] = [
                 $fee_plan['installments_count'],
-                $fee_plan['allowed'] ? 'Yes' : 'No',
+                $this->formatValue($fee_plan['allowed']),
                 $fee_plan['customer_fee_fixed'],
                 $fee_plan['customer_fee_variable'],
                 $fee_plan['merchant_fee_fixed'],
@@ -61,22 +61,10 @@ class AlmaMerchantGetCommand extends AbstractAlmaCommand
         return self::SUCCESS;
     }
 
-    private function formatFeePlans(array $feePlans): array
-    {
-        $plans = [];
-        foreach ($feePlans as $feePlan) {
-            $plans[] = sprintf(
-                "cnt:'%sx', allowed:'%s',\n\tcust_fee_fix:'%s', cust_fee_var:'%s',\n\tmerch_fee_fix:'%s', merch_fee_var:'%s',\n\tmin:'%s', max:'%s'",
-            );
-        }
-
-        return $plans;
-    }
-
-    private function formatValue($value)
+    private function formatValue($value): string
     {
         if (is_bool($value)) {
-            return $value ? 'Yes' : 'No';
+            return $value ? 'TRUE' : 'FALSE';
         }
         if (is_null($value)) {
             return 'NULL';
