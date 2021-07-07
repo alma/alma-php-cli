@@ -8,7 +8,6 @@ use Alma\API\RequestError;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Console\Style\SymfonyStyle;
 
 class AlmaMerchantGetCommand extends AbstractAlmaCommand
 {
@@ -27,7 +26,6 @@ class AlmaMerchantGetCommand extends AbstractAlmaCommand
     const DEFAULT_TABLE_HEADERS = ['Properties', 'Values'];
     protected static $defaultName = 'alma:merchant:get';
     protected static $defaultDescription = 'Get Merchant Informations';
-    private SymfonyStyle $io;
 
     protected function configure(): void
     {
@@ -45,7 +43,6 @@ class AlmaMerchantGetCommand extends AbstractAlmaCommand
      */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $this->io = new SymfonyStyle($input, $output);
         $merchant = $this->alma->merchants->me();
         $this->outputMerchant($merchant);
         $this->outputLegalEntity($merchant);
@@ -54,21 +51,6 @@ class AlmaMerchantGetCommand extends AbstractAlmaCommand
 
 
         return self::SUCCESS;
-    }
-
-    private function formatValue($value): string
-    {
-        if (is_bool($value)) {
-            return $value ? 'TRUE' : 'FALSE';
-        }
-        if (is_null($value)) {
-            return 'NULL';
-        }
-        if (empty($value)) {
-            return 'EMPTY';
-        }
-
-        return $value;
     }
 
     /**
@@ -95,7 +77,7 @@ class AlmaMerchantGetCommand extends AbstractAlmaCommand
         $rows = [];
         foreach (get_object_vars($merchant) as $property => $value) {
             if (!in_array($property, ['fee_plans', 'legal_entity'])) {
-                $rows[] = [$property, $this->formatValue($value)];
+                $rows[] = [$property, $this->formatPrimitive($value)];
             }
         }
         $this->io->table(self::DEFAULT_TABLE_HEADERS, $rows);
@@ -138,7 +120,7 @@ class AlmaMerchantGetCommand extends AbstractAlmaCommand
     {
         return [
             $fee_plan['installments_count'],
-            $this->formatValue($fee_plan['allowed']),
+            $this->formatPrimitive($fee_plan['allowed']),
             $fee_plan['customer_fee_fixed'],
             $fee_plan['customer_fee_variable'],
             $fee_plan['merchant_fee_fixed'],
@@ -157,7 +139,7 @@ class AlmaMerchantGetCommand extends AbstractAlmaCommand
     {
         return [
             $feePlan->installments_count,
-            $this->formatValue($feePlan->allowed),
+            $this->formatPrimitive($feePlan->allowed),
             $feePlan->customer_fee_fixed,
             $feePlan->customer_fee_variable,
             $feePlan->merchant_fee_fixed,

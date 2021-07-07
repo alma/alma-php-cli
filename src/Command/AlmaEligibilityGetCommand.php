@@ -8,7 +8,6 @@ use DateTime;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Console\Style\SymfonyStyle;
 
 class AlmaEligibilityGetCommand extends AbstractAlmaCommand
 {
@@ -35,25 +34,27 @@ class AlmaEligibilityGetCommand extends AbstractAlmaCommand
         ;
     }
 
-    /**
-     * @throws RequestError
-     */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $io            = new SymfonyStyle($input, $output);
-        $eligibilities = $this->alma->payments->eligibility(
-            [
-                'payment' => [
-                    'purchase_amount'    => $input->getOption('amount'),
-                    'installments_count' => array_map(
-                        function ($installment) {
-                            return intval($installment);
-                        },
-                        $input->getOption('installments')
-                    ),
-                ],
-            ]
-        );
+        $amount        = $input->getOption('amount');
+        $installments        = $input->getOption('installments');
+        try {
+            $eligibilities = $this->alma->payments->eligibility(
+                [
+                    'payment' => [
+                        'purchase_amount'    => $amount,
+                        'installments_count' => array_map(
+                            function ($installment) {
+                                return intval($installment);
+                            },
+                            $installments
+                        ),
+                    ],
+                ]
+            );
+        } catch (RequestError $e) {
+            return $this->outputRequestError($e);
+        }
         $headers       = ["Fee Count", "Eligible", "Plans", "Reason", "Min", "Max"];
         $rows          = [];
         foreach ($eligibilities as $cnt => $eligibility) {
@@ -63,7 +64,7 @@ class AlmaEligibilityGetCommand extends AbstractAlmaCommand
             $minimum        = $purchaseAmount ? $purchaseAmount['minimum'] : "";
             $maximum        = $purchaseAmount ? $purchaseAmount['maximum'] : "";
             $eligible       = $eligibility->isEligible() ? "Yes" : "No";
-            $plans          = $this->formatPlans($eligibility);
+            $plans          = $this->formatEligibility($eligibility);
             $rows[]         = [
                 $cnt . "x",
                 $eligible,
@@ -73,14 +74,10 @@ class AlmaEligibilityGetCommand extends AbstractAlmaCommand
                 $this->formatMoney($maximum),
             ];
         }
-        $io->table($headers, $rows);
+        $this->io->title(sprintf('Check Eligibility for %s on following installments [%s]', $this->formatMoney($amount), implode(', ', $installments)));
+        $this->io->table($headers, $rows);
 
         return self::SUCCESS;
-    }
-
-    private function formatMoney($amount = 0): string
-    {
-        return sprintf("%.2f €", round(intval($amount)/100, 2));
     }
 
     /**
@@ -88,7 +85,7 @@ class AlmaEligibilityGetCommand extends AbstractAlmaCommand
      *
      * @return array
      */
-    private function formatPlans(Eligibility $eligibility): array
+    private function formatEligibility(Eligibility $eligibility): array
     {
         $plans = [];
         if ($paymentPlans = $eligibility->getPaymentPlan()) {
