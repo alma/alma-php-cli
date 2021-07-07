@@ -89,23 +89,23 @@ class AlmaEligibilityGetCommand extends AbstractAlmaCommand
     {
         $plans = [];
         if ($paymentPlans = $eligibility->getPaymentPlan()) {
-            $date = new DateTime();
             $barWidth = 0;
             foreach ($paymentPlans as $paymentPlan) {
-                $date->setTimestamp(intval($paymentPlan['due_date']));
                 $planDefinition = sprintf(
                     "date:'%s', fee:'%10s', amount:'%s'",
-                    $date->format('Y-m-d'),
+                    $this->formatTimestamp($paymentPlan['due_date']),
                     $this->formatMoney($paymentPlan['customer_fee']),
                     $this->formatMoney($paymentPlan['purchase_amount'])
                 );
-                $plans[]  = $planDefinition;
-                $length   = strlen($planDefinition)-4; // 2x€ = 6 chars instead 2
-                $barWidth = $length > $barWidth ? $length : $barWidth;
+                $plans[]        = $planDefinition;
+                $length         = strlen($planDefinition) - 4; // 2x€ = 6 chars instead 2
+                $barWidth       = $length > $barWidth ? $length : $barWidth;
             }
             $plans[] = str_repeat("-", $barWidth);
 
         }
+
         return $plans;
     }
+
 }

@@ -23,7 +23,6 @@ class AlmaMerchantGetCommand extends AbstractAlmaCommand
     ];
     const EXTENDED_DATA_API       = '/v1/me/extended-data';
     const FEE_PLANS_API         = '/v1/me/fee-plans';
-    const DEFAULT_TABLE_HEADERS = ['Properties', 'Values'];
     protected static $defaultName = 'alma:merchant:get';
     protected static $defaultDescription = 'Get Merchant Informations';
 
@@ -59,13 +58,7 @@ class AlmaMerchantGetCommand extends AbstractAlmaCommand
     protected function outputLegalEntity(Merchant $merchant): void
     {
         $this->io->title('Legal Entity');
-        $rows = [];
-        foreach ($merchant->legal_entity as $key => $value) {
-            if ($key !== 'address') {
-                $rows[] = [$key, $value];
-            }
-        }
-        $this->io->table(self::DEFAULT_TABLE_HEADERS, $rows);
+        $this->outputKeyValueTable($merchant->legal_entity, ['address']);
     }
 
     /**
@@ -74,13 +67,7 @@ class AlmaMerchantGetCommand extends AbstractAlmaCommand
     protected function outputMerchant(Merchant $merchant)
     {
         $this->io->title('Merchant');
-        $rows = [];
-        foreach (get_object_vars($merchant) as $property => $value) {
-            if (!in_array($property, ['fee_plans', 'legal_entity'])) {
-                $rows[] = [$property, $this->formatPrimitive($value)];
-            }
-        }
-        $this->io->table(self::DEFAULT_TABLE_HEADERS, $rows);
+        $this->outputKeyValueTable(get_object_vars($merchant), ['fee_plans', 'legal_entity']);
     }
 
     /**
