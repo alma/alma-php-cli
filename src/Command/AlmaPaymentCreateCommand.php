@@ -2,7 +2,11 @@
 
 namespace App\Command;
 
+use Alma\API\Entities\Instalment;
+use Alma\API\Entities\Order;
 use Alma\API\RequestError;
+use Exception;
+use InvalidArgumentException;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -10,14 +14,101 @@ use Symfony\Component\Console\Output\OutputInterface;
 
 class AlmaPaymentCreateCommand extends AbstractAlmaCommand
 {
+    const REQUIRED_ARRAY = InputOption::VALUE_IS_ARRAY | InputOption::VALUE_REQUIRED;
     protected static $defaultName = 'alma:payment:create';
-    protected static $defaultDescription = 'Create payment with given informations';
+    protected static $defaultDescription = 'Create payment with given informations then output informations about payload & created payment';
+
+    const SHIPPING_ADDRESS_TYPE = 'shipping';
+    const BILLING_ADDRESS_TYPE  = 'billing';
+    const CUSTOMER_ADDRESS_TYPE = 'customer';
+    const ADDRESSES_TYPES       = [
+        self::CUSTOMER_ADDRESS_TYPE,
+        self::BILLING_ADDRESS_TYPE,
+        self::SHIPPING_ADDRESS_TYPE,
+    ];
+    const ADDRESSES_KEYS        = [
+        'first_name',
+        'last_name',
+        'email',
+        'phone',
+        'company',
+        'line1',
+        'line2',
+        'postal_code',
+        'city',
+        'country',
+    ];
+
+    /**
+     * @param string         $type
+     * @param InputInterface $input
+     *
+     * @return array
+     */
+    protected function buildAddressFrom(string $type, InputInterface $input): array
+    {
+        $address = [];
+        foreach (self::ADDRESSES_KEYS as $key) {
+            $value = $input->getOption($this->getAddressOptionName($type, $key));
+            if ($value) {
+                $address[$key] = $value;
+            }
+        }
+
+        return $address;
+    }
+
+    private function checkArrayValues(array $array): bool
+    {
+        if (empty($array)) {
+            return false;
+        }
+        foreach ($array as $value) {
+            if (is_null($value)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
 
     protected function configure(): void
     {
         $this
             ->addArgument('amount', InputArgument::REQUIRED, 'A valid amount to perform payment (give it in cents)')
-            ->addOption('installments-count', 'i', InputOption::VALUE_REQUIRED, 'pnx value', 3)
+            ->addOption('output-payload', 'p', InputOption::VALUE_NONE, 'should I output payload before create payment')
+            ->addOption(
+                'output-customer',
+                'c',
+                InputOption::VALUE_NONE,
+                'should I output customer after create payment'
+            )
+            ->addOption('output-orders', 'o', InputOption::VALUE_NONE, 'should I output orders after create payment')
+            ->addOption(
+                'output-addresses',
+                'a',
+                InputOption::VALUE_NONE,
+                'should I output addresses after create payment'
+            )
+            ->addOption(
+                'format-payload',
+                'f',
+                InputOption::VALUE_OPTIONAL,
+                'should I format output payload (works with --output-payload) - possible values are table, dump, json, var_dump, var_export',
+                'table'
+            )
+            ->addOption(
+                'dry-run',
+                'd',
+                InputOption::VALUE_NONE,
+                'do not perform really the create payment action (useful if you just want to see the payload)'
+            )
+            ->addOption('installments', 'i', InputOption::VALUE_REQUIRED, 'pnx installments count', 3)
+            ->addOption('payment-locale', 'l', InputOption::VALUE_REQUIRED, 'locale for payement', 'fr')
+            ->addOption('email', null, InputOption::VALUE_REQUIRED, 'customer email')
+            ->addOption('phone', null, InputOption::VALUE_REQUIRED, 'customer phone')
+            ->addOption('first-name', null, InputOption::VALUE_REQUIRED, 'customer first_name')
+            ->addOption('last-name', null, InputOption::VALUE_REQUIRED, 'customer last_name')
             ->addOption('return-url', null, InputOption::VALUE_REQUIRED, 'a website return URL after alma checkout')
             ->addOption(
                 'cancel-url',
@@ -34,52 +125,88 @@ class AlmaPaymentCreateCommand extends AbstractAlmaCommand
             ->addOption(
                 'custom-data',
                 null,
-                InputOption::VALUE_IS_ARRAY | InputOption::VALUE_REQUIRED,
+                self::REQUIRED_ARRAY,
                 'custom data for payment formatted as key:value',
                 ['client:alma-cli']
             )
-            ->addOption('payment-locale', 'l', InputOption::VALUE_REQUIRED, 'locale for payement', 'fr')
             ->addOption('order-reference', null, InputOption::VALUE_REQUIRED, 'unique identifier of your order')
             ->addOption('order-edit-url', null, InputOption::VALUE_REQUIRED, 'your website edit url for order')
             ->addOption('customer-edit-url', null, InputOption::VALUE_REQUIRED, 'you website edit url for customer')
-            ->addOption('billing-city', null, InputOption::VALUE_REQUIRED, 'billing address "city" infos')
-            ->addOption('billing-company', null, InputOption::VALUE_REQUIRED, 'billing address "company" infos')
-            ->addOption('billing-country', null, InputOption::VALUE_REQUIRED, 'billing address "country" infos')
-            ->addOption('billing-email', null, InputOption::VALUE_REQUIRED, 'billing address "email" infos')
-            ->addOption('billing-first_name', null, InputOption::VALUE_REQUIRED, 'billing address "first_name" infos')
-            ->addOption('billing-last_name', null, InputOption::VALUE_REQUIRED, 'billing address "last_name" infos')
-            ->addOption('billing-line1', null, InputOption::VALUE_REQUIRED, 'billing address "line1" infos')
-            ->addOption('billing-line2', null, InputOption::VALUE_REQUIRED, 'billing address "line2" infos')
-            ->addOption('billing-phone', null, InputOption::VALUE_REQUIRED, 'billing address "phone" infos')
-            ->addOption('billing-postal_code', null, InputOption::VALUE_REQUIRED, 'billing address "postal_code" infos')
-            ->addOption('customer-city', null, InputOption::VALUE_REQUIRED, 'customer "city" infos')
-            ->addOption('customer-company', null, InputOption::VALUE_REQUIRED, 'customer "company" infos')
-            ->addOption('customer-country', null, InputOption::VALUE_REQUIRED, 'customer "country" infos')
-            ->addOption('customer-email', null, InputOption::VALUE_REQUIRED, 'customer "email" infos')
-            ->addOption('customer-first_name', null, InputOption::VALUE_REQUIRED, 'customer "first_name" infos')
-            ->addOption('customer-last_name', null, InputOption::VALUE_REQUIRED, 'customer "last_name" infos')
-            ->addOption('customer-line1', null, InputOption::VALUE_REQUIRED, 'customer "line1" infos')
-            ->addOption('customer-line2', null, InputOption::VALUE_REQUIRED, 'customer "line2" infos')
-            ->addOption('customer-phone', null, InputOption::VALUE_REQUIRED, 'customer "phone" infos')
-            ->addOption('customer-postal_code', null, InputOption::VALUE_REQUIRED, 'customer "postal_code" infos')
-            ->addOption('shipping-city', null, InputOption::VALUE_REQUIRED, 'shipping address "city" infos')
-            ->addOption('shipping-company', null, InputOption::VALUE_REQUIRED, 'shipping address "company" infos')
-            ->addOption('shipping-country', null, InputOption::VALUE_REQUIRED, 'shipping address "country" infos')
-            ->addOption('shipping-email', null, InputOption::VALUE_REQUIRED, 'shipping address "email" infos')
-            ->addOption('shipping-first_name', null, InputOption::VALUE_REQUIRED, 'shipping address "first_name" infos')
-            ->addOption('shipping-last_name', null, InputOption::VALUE_REQUIRED, 'shipping address "last_name" infos')
-            ->addOption('shipping-line1', null, InputOption::VALUE_REQUIRED, 'shipping address "line1" infos')
-            ->addOption('shipping-line2', null, InputOption::VALUE_REQUIRED, 'shipping address "line2" infos')
-            ->addOption('shipping-phone', null, InputOption::VALUE_REQUIRED, 'shipping address "phone" infos')
-            ->addOption(
-                'shipping-postal_code',
-                null,
-                InputOption::VALUE_REQUIRED,
-                'shipping address "postal_code" infos'
-            )
         ;
+        foreach (self::ADDRESSES_TYPES as $type) {
+            foreach (self::ADDRESSES_KEYS as $key) {
+                $this->addOption(
+                    $this->getAddressOptionName($type, $key),
+                    null,
+                    InputOption::VALUE_REQUIRED,
+                    sprintf('%s address "%s" info', $type, $key)
+                );
+            }
+        }
     }
 
+    /**
+     * @param int            $amount
+     * @param int            $installmentsCount
+     * @param InputInterface $input
+     *
+     * @return array[]
+     * @throws Exception
+     */
+    protected function defaultPayload(int $amount, int $installmentsCount, InputInterface $input): array
+    {
+        $customer = [
+            'first_name' => $input->getOption('first-name'),
+            'last_name'  => $input->getOption('last-name'),
+            'email'      => $input->getOption('email'),
+            'phone'      => $input->getOption('phone'),
+        ];
+
+        $order = [
+            'merchant_reference' => $input->getOption('order-reference'),
+            'merchant_url'       => $input->getOption('order-edit-url'),
+            'customer_url'       => $input->getOption('customer-edit-url'),
+        ];
+
+        $returnUrl  = $input->getOption('return-url');
+        $ipnUrl     = $input->getOption('ipn-url');
+        $cancelUrl  = $input->getOption('cancel-url');
+        $customData = $input->getOption('custom-data');
+        $locale     = $input->getOption('payment-locale');
+        $data       = [
+            'payment' => [
+                'purchase_amount'    => $amount,
+                'installments_count' => $installmentsCount,
+            ],
+        ];
+        if ($returnUrl) {
+            $data['payment']['return_url'] = $returnUrl;
+        }
+        if ($ipnUrl) {
+            $data['payment']['ipn_callback_url'] = $ipnUrl;
+        }
+        if ($cancelUrl) {
+            $data['payment']['customer_cancel_url'] = $cancelUrl;
+        }
+        if ($customData) {
+            $data['payment']['custom_data'] = $this->formatCustomData($customData);
+        }
+        if ($locale) {
+            $data['payment']['locale'] = $locale;
+        }
+        if ($this->checkArrayValues($order)) {
+            $data['order'] = $order;
+        }
+        if ($this->checkArrayValues($customer)) {
+            $data['customer'] = $customer;
+        }
+
+        return $data;
+    }
+
+    /**
+     * @throws Exception
+     */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $amount = intval($input->getArgument('amount'));
@@ -88,82 +215,209 @@ class AlmaPaymentCreateCommand extends AbstractAlmaCommand
 
             return self::INVALID;
         }
-        $installmentsCount = intval($input->getOption('installments-count'));
+        $installmentsCount = intval($input->getOption('installments'));
         if ($installmentsCount <= 0) {
             $this->io->error('Installments count must be > 0');
 
             return self::INVALID;
         }
 
-        $data = [
-            'payment' => [
-                'purchase_amount' => $amount,
-//                'return_url'          => $input->getOption('return-url'),
-//                'ipn_callback_url'    => $input->getOption('ipn-url'),
-//                'customer_cancel_url' => $input->getOption('cancel-url'),
-//                'installments_count'  => $installmentsCount,
-//                'custom_data'         => $input->getOption('custom-data'),
-                'locale'          => $input->getOption('payment-locale'),
-                'billing_address'     => [
-                    'first_name'  => $input->getOption('billing-first_name'),
-                    'last_name'   => $input->getOption('billing-last_name'),
-                    'email'       => $input->getOption('billing-email'),
-                    'phone'       => $input->getOption('billing-phone'),
-                    'company'     => $input->getOption('billing-company'),
-                    'line1'       => $input->getOption('billing-line1'),
-                    'line2'       => $input->getOption('billing-line2'),
-                    'postal_code' => $input->getOption('billing-postal_code'),
-                    'city'        => $input->getOption('billing-city'),
-                ],
-//                'shipping_address'    => [
-//                    'first_name'  => $input->getOption('shipping-first_name'),
-//                    'last_name'   => $input->getOption('shipping-last_name'),
-//                    'email'       => $input->getOption('shipping-email'),
-//                    'phone'       => $input->getOption('shipping-phone'),
-//                    'company'     => $input->getOption('shipping-company'),
-//                    'line1'       => $input->getOption('shipping-line1'),
-//                    'line2'       => $input->getOption('shipping-line2'),
-//                    'postal_code' => $input->getOption('shipping-postal_code'),
-//                    'city'        => $input->getOption('shipping-city'),
-//                ],
-            ],
-//            'customer'            => [
-//                'first_name' => $input->getOption('customer-first_name'),
-//                'last_name'  => $input->getOption('customer-last_name'),
-//                'email'      => $input->getOption('customer-email'),
-//                'phone'      => $input->getOption('customer-phone'),
-//                'addresses'  => [
-//                    [
-//                        'first_name'  => $input->getOption('customer-first_name'),
-//                        'last_name'   => $input->getOption('customer-last_name'),
-//                        'email'       => $input->getOption('customer-email'),
-//                        'phone'       => $input->getOption('customer-phone'),
-//                        'company'     => $input->getOption('customer-company'),
-//                        'line1'       => $input->getOption('customer-line1'),
-//                        'line2'       => $input->getOption('customer-line2'),
-//                        'postal_code' => $input->getOption('customer-postal_code'),
-//                        'city'        => $input->getOption('customer-city'),
-//                    ],
-//                ],
-//            ],
-//            'order'   => [
-//                'merchant_reference' => $input->getOption('order-reference'),
-//                'merchant_url'       => $input->getOption('order-edit-url'),
-//                'customer_url'       => $input->getOption('customer-edit-url'),
-//            ],
-        ];
+        $data = $this->defaultPayload($amount, $installmentsCount, $input);
 
+        $customerAddress   = $this->buildAddressFrom(self::CUSTOMER_ADDRESS_TYPE, $input);
+        $billingAddress    = $this->buildAddressFrom(self::BILLING_ADDRESS_TYPE, $input);
+        $shippingAddress   = $this->buildAddressFrom(self::SHIPPING_ADDRESS_TYPE, $input);
+        $payloadAddresses  = [];
+        $customerAddresses = [];
+        if ($this->checkArrayValues($customerAddress)) {
+            $customerAddresses[]                  = $customerAddress;
+            $payloadAddresses['customer-address'] = $customerAddress;
+        }
+        if ($this->checkArrayValues($billingAddress)) {
+            $data['payment']['billing_address'] = $billingAddress;
+//            $customerAddresses[]                         = $billingAddress;
+            $payloadAddresses['payment-billing-address'] = $billingAddress;
+        }
+        if ($this->checkArrayValues($shippingAddress)) {
+            $data['payment']['shipping_address'] = $shippingAddress;
+//            $customerAddresses[]                          = $shippingAddress;
+            $payloadAddresses['payment-shipping-address'] = $shippingAddress;
+        }
+        if (!empty($customerAddresses)) {
+            $data['customer']['addresses'] = $customerAddresses;
+        }
+
+        if ($input->getOption('output-payload')) {
+            switch ($input->getOption('format-payload')) {
+                case 'var_export':
+                    var_export($data);
+                    break;
+                case 'var_dump':
+                    var_dump($data);
+                    break;
+                case 'dump':
+                    dump($data);
+                    break;
+                case 'json':
+                    print(json_encode($data, JSON_PRETTY_PRINT));
+                    break;
+                case 'table':
+                    $this->io->title('Payload Payment');
+                    $this->outputKeyValueTable($data['payment'], ['billing_address', 'shipping_address']);
+                    $this->io->title('Payload Addresses');
+                    $this->outputAddresses($payloadAddresses);
+                    $this->io->title('Payload Customer');
+                    $this->outputKeyValueTable($data['customer'], ['addresses']);
+                    $this->io->title('Payload Order');
+                    $this->outputKeyValueTable($data['order']);
+                    break;
+                default:
+                    $this->io->error(sprintf('%s: not a valid payload format', $input->getOption('format-payload')));
+
+                    return self::INVALID;
+            }
+        }
+
+        if ($input->getOption('dry-run')) {
+            $this->io->info('Command called with dry run ... we will not perform the payment creation');
+
+            return self::SUCCESS;
+        }
         try {
-            dump($data);
             $payment = $this->alma->payments->create($data);
         } catch (RequestError $e) {
             return $this->outputRequestError($e);
 
         }
 
-        dump($payment);
+        $this->io->title('Alma Payment from API');
+        $this->outputKeyValueTable(
+            get_object_vars($payment),
+            ['customer', 'billing_address', 'orders', 'payment_plan']
+        );
+        if ($input->getOption('output-customer')) {
+            $this->io->title('Alma Payment.customer from API');
+            $this->outputKeyValueTable($payment->customer, ['addresses']);
+        }
+        if ($input->getOption('output-addresses')) {
+            $this->io->title('Alma Payment.customer.addresses from API');
+            $this->outputAddresses($payment->customer['addresses'], ['id', 'created']);
+            $this->io->title('Alma Payment.billing_address from API');
+            $this->outputAddresses([$payment->billing_address], ['id', 'created']);
+        }
+        if ($input->getOption('output-orders')) {
+            $this->io->title('Alma Payment.orders from API');
+            $this->outputOrders($payment->orders);
+        }
+        $this->io->title('Alma Payment.payment_plan from API');
+        $this->outputPaymentPlans($payment->payment_plan);
 
         return self::SUCCESS;
+    }
+
+    /**
+     * @throws Exception
+     */
+    private function formatCustomData(array $customData): array
+    {
+        $formattedData = [];
+        foreach ($customData as $data) {
+            $split = explode(":", $data);
+            if (sizeof($split) !== 2) {
+                throw new Exception("bad custom data format ($data) => this must be formatted as 'key:value'");
+            }
+            $formattedData[$split[0]] = $split[1];
+        }
+
+        return $formattedData;
+    }
+
+    private function getAddressOptionName(string $type, string $key): string
+    {
+        if (!in_array($type, self::ADDRESSES_TYPES)) {
+            throw new InvalidArgumentException(sprintf('%s: BAD ADDRESS TYPE', $type));
+        }
+
+        return sprintf('%s-%s', $type, str_replace("_", "-", $key));
+    }
+
+    /**
+     * @param array|Order[] $orders
+     */
+    private function outputOrders(array $orders)
+    {
+        $headers = [
+            'payment',
+            'merchant_reference',
+            'merchant_url',
+            'data',
+            'id',
+            'comment',
+            'created',
+            'customer_url',
+        ];
+        $rows    = [];
+        foreach ($orders as $order) {
+            $rows[] = [
+                $order->payment,
+                $order->merchant_reference,
+                $order->merchant_url,
+                $this->implodeWithKeys($order->data),
+                $order->id,
+                $order->comment,
+                $this->formatTimestamp($order->created),
+                $order->customer_url,
+            ];
+        }
+        $this->io->table($headers, $rows);
+    }
+
+    private function outputAddresses(array $addresses, array $additionalFields = [])
+    {
+        $rows = [];
+        foreach ($addresses as $name => $address) {
+
+            $row = [$name];
+            foreach (array_merge($additionalFields, self::ADDRESSES_KEYS) as $key) {
+                if (!isset($address[$key])) {
+                    $row[] = 'UNDEFINED';
+                    continue;
+                }
+                if ($key === 'created') {
+                    $row[] = $this->formatTimestamp($address[$key]);
+                    continue;
+                }
+                $row[] = $this->formatPrimitive($address[$key]);
+            }
+            $rows[] = $row;
+        }
+        $this->io->table(array_merge(['NAME'], $additionalFields, self::ADDRESSES_KEYS), $rows);
+    }
+
+    /**
+     * @param array|Instalment[] $plans
+     */
+    private function outputPaymentPlans(array $plans)
+    {
+        $rows    = [];
+        $headers = [
+            'state',
+            'purchase_amount',
+            'original_purchase_amount',
+            'due_date',
+            'customer_fee',
+            'id',
+            'customer_can_postpone',
+        ];
+        foreach ($plans as $plan) {
+            $rows[] = [
+                $plan->state,
+                $this->formatMoney($plan->purchase_amount),
+                $this->formatMoney($plan->original_purchase_amount),
+                $this->formatMoney($plan->original_purchase_amount),
+            ];
+        }
+        $this->io->table($headers, $rows);
     }
 
 }
