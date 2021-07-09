@@ -14,6 +14,7 @@ class AlmaMerchantGetCommand extends AbstractAlmaCommand
     const FEE_PLANS_TABLE_HEADERS = [
         'cnt',
         'allowed',
+        'deferred',
         'cust_fee_fix',
         'cust_fee_var',
         'merch_fee_fix',
@@ -52,6 +53,23 @@ class AlmaMerchantGetCommand extends AbstractAlmaCommand
         return self::SUCCESS;
     }
 
+    private function formatDeferred(int $deferred_days, int $deferred_months): string
+    {
+        $formatted = "";
+        if ($deferred_days > 0) {
+            $formatted = sprintf("%s days", $deferred_days);
+        }
+        if ($deferred_months > 0) {
+            if ($formatted) {
+                // should not be occurs because: L'utilisation des mois et jours différés est mutuellement exclusive
+                $formatted .= " + ";
+            }
+            $formatted .= sprintf("%s months", $deferred_months);
+        }
+
+        return $formatted ?: 'NONE';
+    }
+
     /**
      * @param Merchant $merchant
      */
@@ -83,13 +101,13 @@ class AlmaMerchantGetCommand extends AbstractAlmaCommand
             $this->io->title(sprintf('fee plans from %s', $source));
             switch ($source) {
                 case self::FEE_PLANS_API:
-                    foreach ($merchant->fee_plans as $fee_plan) {
-                        $fee_plans[] = $this->populateRowFromArray($fee_plan);
+                    foreach ($this->alma->merchants->feePlans(FeePlan::KIND_GENERAL, 'all', true) as $feePlan) {
+                        $fee_plans[] = $this->populateRowFromObject($feePlan);
                     }
                     break;
                 case self::EXTENDED_DATA_API:
-                    foreach ($this->alma->merchants->feePlans() as $feePlan) {
-                        $fee_plans[] = $this->populateRowFromObject($feePlan);
+                    foreach ($merchant->fee_plans as $fee_plan) {
+                        $fee_plans[] = $this->populateRowFromArray($fee_plan);
                     }
                     break;
                 default:
@@ -108,12 +126,13 @@ class AlmaMerchantGetCommand extends AbstractAlmaCommand
         return [
             $fee_plan['installments_count'],
             $this->formatPrimitive($fee_plan['allowed']),
-            $fee_plan['customer_fee_fixed'],
-            $fee_plan['customer_fee_variable'],
-            $fee_plan['merchant_fee_fixed'],
-            $fee_plan['merchant_fee_variable'],
-            $fee_plan['min_purchase_amount'],
-            $fee_plan['max_purchase_amount'],
+            $this->formatDeferred($fee_plan['deferred_days'], $fee_plan['deferred_months']),
+            $this->formatMoney($fee_plan['customer_fee_fixed']),
+            $this->formatMoney($fee_plan['customer_fee_variable']),
+            $this->formatMoney($fee_plan['merchant_fee_fixed']),
+            $this->formatMoney($fee_plan['merchant_fee_variable']),
+            $this->formatMoney($fee_plan['min_purchase_amount']),
+            $this->formatMoney($fee_plan['max_purchase_amount']),
         ];
 }
 
@@ -127,12 +146,13 @@ class AlmaMerchantGetCommand extends AbstractAlmaCommand
         return [
             $feePlan->installments_count,
             $this->formatPrimitive($feePlan->allowed),
-            $feePlan->customer_fee_fixed,
-            $feePlan->customer_fee_variable,
-            $feePlan->merchant_fee_fixed,
-            $feePlan->merchant_fee_variable,
-            $feePlan->min_purchase_amount,
-            $feePlan->max_purchase_amount,
+            $this->formatDeferred($feePlan->deferred_days, $feePlan->deferred_months),
+            $this->formatMoney($feePlan->customer_fee_fixed),
+            $this->formatMoney($feePlan->customer_fee_variable),
+            $this->formatMoney($feePlan->merchant_fee_fixed),
+            $this->formatMoney($feePlan->merchant_fee_variable),
+            $this->formatMoney($feePlan->min_purchase_amount),
+            $this->formatMoney($feePlan->max_purchase_amount),
         ];
 }
 }
