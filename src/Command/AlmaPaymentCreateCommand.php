@@ -105,6 +105,12 @@ class AlmaPaymentCreateCommand extends AbstractAlmaCommand
             )
             ->addOption('installments', 'i', InputOption::VALUE_REQUIRED, 'pnx installments count', 3)
             ->addOption('payment-locale', 'l', InputOption::VALUE_REQUIRED, 'locale for payement', 'fr')
+            ->addOption(
+                'force-empty-payment-address',
+                'F',
+                InputOption::VALUE_NONE,
+                'provide this flag if you don\'t want provide payment billing nor shipping address informations (empty billing billing address will be set in payload)'
+            )
             ->addOption('email', null, InputOption::VALUE_REQUIRED, 'customer email')
             ->addOption('phone', null, InputOption::VALUE_REQUIRED, 'customer phone')
             ->addOption('first-name', null, InputOption::VALUE_REQUIRED, 'customer first_name')
@@ -245,6 +251,13 @@ class AlmaPaymentCreateCommand extends AbstractAlmaCommand
         }
         if (!empty($customerAddresses)) {
             $data['customer']['addresses'] = $customerAddresses;
+        }
+        if (!$this->checkArrayValues($shippingAddress) && !$this->checkArrayValues(
+                $shippingAddress
+            ) && $input->getOption('force-empty-payment-address')) {
+            // force an empty billing address
+            $data['payment']['billing_address'] = [];
+            $payloadAddresses['payment-billing-address'] = [];
         }
 
         if ($input->getOption('output-payload')) {
