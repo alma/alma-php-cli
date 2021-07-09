@@ -3,6 +3,7 @@
 namespace App\Command;
 
 use Alma\API\Client;
+use Alma\API\Entities\Instalment;
 use Alma\API\RequestError;
 use DateTime;
 use Symfony\Component\Console\Command\Command;
@@ -80,6 +81,28 @@ abstract class AbstractAlmaCommand extends Command
         );
     }
 
+    protected function outputAddresses(array $addresses, array $additionalFields = [])
+    {
+        $rows = [];
+        foreach ($addresses as $name => $address) {
+
+            $row = [$name];
+            foreach (array_merge($additionalFields, AlmaPaymentCreateCommand::ADDRESSES_KEYS) as $key) {
+                if (!isset($address[$key])) {
+                    $row[] = 'UNDEFINED';
+                    continue;
+                }
+                if ($key === 'created') {
+                    $row[] = $this->formatTimestamp($address[$key]);
+                    continue;
+                }
+                $row[] = $this->formatPrimitive($address[$key]);
+            }
+            $rows[] = $row;
+        }
+        $this->io->table(array_merge(['NAME'], $additionalFields, AlmaPaymentCreateCommand::ADDRESSES_KEYS), $rows);
+    }
+
     /**
      * @param iterable $iterable
      * @param array    $excludedProperties
@@ -102,6 +125,32 @@ abstract class AbstractAlmaCommand extends Command
             $rows[] = [$key, $this->formatPrimitive($value)];
         }
         $this->io->table(self::DEFAULT_TABLE_HEADERS, $rows);
+    }
+
+    /**
+     * @param array|Instalment[] $plans
+     */
+    protected function outputPaymentPlans(array $plans)
+    {
+        $rows    = [];
+        $headers = [
+            'state',
+            'purchase_amount',
+            'original_purchase_amount',
+            'due_date',
+            'customer_fee',
+            'id',
+            'customer_can_postpone',
+        ];
+        foreach ($plans as $plan) {
+            $rows[] = [
+                $plan->state,
+                $this->formatMoney($plan->purchase_amount),
+                $this->formatMoney($plan->original_purchase_amount),
+                $this->formatMoney($plan->original_purchase_amount),
+            ];
+        }
+        $this->io->table($headers, $rows);
     }
 
     protected function outputRequestError(RequestError $exception): int
