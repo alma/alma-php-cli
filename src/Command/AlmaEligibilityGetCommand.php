@@ -98,7 +98,7 @@ class AlmaEligibilityGetCommand extends AbstractAlmaCommand
             $eligible       = $eligibility->isEligible() ? "Yes" : "No";
             $plans          = $this->formatEligibility($eligibility);
             $rows[]         = [
-                $cnt . "x",
+                $cnt,
                 $eligible,
                 implode("\n", $plans),
                 $reasons ? implode(", ", $reasons) : "",
