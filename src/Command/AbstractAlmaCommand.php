@@ -53,7 +53,7 @@ abstract class AbstractAlmaCommand extends Command
      */
     protected function formatTimestamp(int $timestamp): string
     {
-        return (new DateTime())->setTimestamp(intval($timestamp))->format('Y-m-d');
+        return (new DateTime())->setTimestamp($timestamp)->format('Y-m-d');
     }
 
     /**
@@ -70,13 +70,14 @@ abstract class AbstractAlmaCommand extends Command
             $separator,
             array_map(
                 function ($value, $key) use ($keySeparator, $keyLength) {
+                    if (is_iterable($value)) {
+                        return $this->implodeWithKeys($value);
+                    }
 
                     return sprintf("%{$keyLength}s%s%s", $key, $keySeparator, $value);
                 },
                 $array,
-                array_keys(
-                    $array
-                )
+                array_keys($array)
             )
         );
     }
@@ -101,6 +102,39 @@ abstract class AbstractAlmaCommand extends Command
             $rows[] = $row;
         }
         $this->io->table(array_merge(['NAME'], $additionalFields, AlmaPaymentCreateCommand::ADDRESSES_KEYS), $rows);
+    }
+
+    /**
+     * @param string $format
+     * @param array  $data
+     *
+     * @return bool
+     */
+    protected function outputFormat(string $format, array ...$data): bool
+    {
+        switch ($format) {
+            case 'var_export':
+                var_export($data);
+                break;
+            case 'var_dump':
+                var_dump($data);
+                break;
+            case 'dump':
+                dump($data);
+                break;
+            case 'json':
+                print(json_encode($data, JSON_PRETTY_PRINT));
+                break;
+            case 'table':
+                $this->outputFormatTable($data);
+                break;
+            default:
+                $this->io->error(sprintf('%s: not a valid format', $format));
+
+                return false;
+        }
+
+        return true;
     }
 
     /**
@@ -194,8 +228,16 @@ abstract class AbstractAlmaCommand extends Command
         return $value;
     }
 
+    protected function outputFormatTable(array ...$data): void
+    {
+        foreach ($data as $datum) {
+            $this->outputKeyValueTable($datum);
+        }
+    }
+
     /**
      * @param Client $alma
+     *
      * @required
      */
     public function setAlma(Client $alma)

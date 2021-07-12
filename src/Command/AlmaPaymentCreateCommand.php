@@ -2,7 +2,6 @@
 
 namespace App\Command;
 
-use Alma\API\Entities\Instalment;
 use Alma\API\Entities\Order;
 use Alma\API\RequestError;
 use Exception;
@@ -261,33 +260,9 @@ class AlmaPaymentCreateCommand extends AbstractAlmaCommand
         }
 
         if ($input->getOption('output-payload')) {
-            switch ($input->getOption('format-payload')) {
-                case 'var_export':
-                    var_export($data);
-                    break;
-                case 'var_dump':
-                    var_dump($data);
-                    break;
-                case 'dump':
-                    dump($data);
-                    break;
-                case 'json':
-                    print(json_encode($data, JSON_PRETTY_PRINT));
-                    break;
-                case 'table':
-                    $this->io->title('Payload Payment');
-                    $this->outputKeyValueTable($data['payment'], ['billing_address', 'shipping_address']);
-                    $this->io->title('Payload Addresses');
-                    $this->outputAddresses($payloadAddresses);
-                    $this->io->title('Payload Customer');
-                    $this->outputKeyValueTable($data['customer'], ['addresses']);
-                    $this->io->title('Payload Order');
-                    $this->outputKeyValueTable($data['order']);
-                    break;
-                default:
-                    $this->io->error(sprintf('%s: not a valid payload format', $input->getOption('format-payload')));
-
-                    return self::INVALID;
+            $outputFormat = $input->getOption('format-payload');
+            if (!$this->outputFormat($outputFormat, $data, $payloadAddresses)) {
+                return self::INVALID;
             }
         }
 
@@ -343,6 +318,27 @@ class AlmaPaymentCreateCommand extends AbstractAlmaCommand
         }
 
         return $formattedData;
+    }
+
+    /**
+     * @param array $data
+     */
+    protected function outputFormatTable(array ... $data): void
+    {
+        if (empty($data)) {
+            return;
+        }
+        $this->io->title('Payload Payment');
+        $this->outputKeyValueTable($data[0]['payment'], ['billing_address', 'shipping_address']);
+        // $payloadAddresses
+        if (isset($data[1])) {
+            $this->io->title('Payload Addresses');
+            $this->outputAddresses($data[1]);
+        }
+        $this->io->title('Payload Customer');
+        $this->outputKeyValueTable($data[0]['customer'], ['addresses']);
+        $this->io->title('Payload Order');
+        $this->outputKeyValueTable($data[0]['order']);
     }
 
     private function getAddressOptionName(string $type, string $key): string
