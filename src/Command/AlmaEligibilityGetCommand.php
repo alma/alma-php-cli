@@ -61,6 +61,12 @@ class AlmaEligibilityGetCommand extends AbstractAlmaCommand
                 ["1-15d", 2, 3, 4, 10]
             )
             ->addOption(
+                'payload-file',
+                'p',
+                InputOption::VALUE_REQUIRED,
+                'give payload directly from file instead build it from parameters (give a .php or .json valid file as parameter)'
+            )
+            ->addOption(
                 'api-version',
                 null,
                 InputOption::VALUE_REQUIRED,
@@ -79,13 +85,21 @@ class AlmaEligibilityGetCommand extends AbstractAlmaCommand
         $installments = $input->getOption('installments');
         $version      = intval($input->getOption('api-version'));
         try {
-            $eligibilityData = $this->getEligibilityData($amount, $installments, $version);
+            if (!$eligibilityData  = $this->getEligibilityFromFile($input->getOption('payload-file'))) {
+                $eligibilityData = $this->getEligibilityData($amount, $installments, $version);
+            }
             $this->outputFormat('json', $eligibilityData);
-            $eligibilities   = $this->alma->payments->eligibility(
+            $eligibilities = $this->alma->payments->eligibility(
                 $eligibilityData
             );
         } catch (RequestError $e) {
             return $this->outputRequestError($e);
+        }
+        if (!is_array($eligibilities) && !$eligibilities->isEligible()) {
+            $this->io->error('Not an Eligible request');
+            dump($eligibilities);
+
+            return self::FAILURE;
         }
         $headers = ["Fee Count", "Eligible", "Plans", "Reason", "Min", "Max"];
         $rows    = [];
@@ -182,5 +196,26 @@ class AlmaEligibilityGetCommand extends AbstractAlmaCommand
             default:
                 throw new Exception(sprintf('version %s : WTF !!!', $version));
         }
+    }
+
+    /**
+     * @param string $payloadFile
+     *
+     * @return null|array
+     */
+    private function getEligibilityFromFile(string $payloadFile)
+    {
+        if (!file_exists($payloadFile)) {
+            $this->io->warning(sprintf('payloadFile %s not found', $payloadFile));
+            return null;
+        }
+        if (preg_match("#.php$#", $payloadFile)) {
+            return require($payloadFile);
+        }
+        if (preg_match("#.json$#", $payloadFile)) {
+            return json_decode($payloadFile, true);
+        }
+        $this->io->warning(sprintf('payloadFile %s is not a valid file ext (only .json & .php are allowed)', $payloadFile));
+        return null;
     }
 }
