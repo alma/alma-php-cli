@@ -6,9 +6,7 @@ use Alma\API\RequestError;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
-use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Console\Style\SymfonyStyle;
 
 class AlmaPaymentGetCommand extends AbstractAlmaCommand
 {
@@ -18,8 +16,11 @@ class AlmaPaymentGetCommand extends AbstractAlmaCommand
     protected function configure(): void
     {
         $this
-            ->addArgument('ID', InputArgument::OPTIONAL, 'the payment id formatted as payment_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx or only xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx if you prefer')
-        ;
+            ->addArgument(
+                'ID',
+                InputArgument::REQUIRED,
+                'the payment id formatted as payment_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx or only xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx if you prefer'
+            );
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -27,7 +28,7 @@ class AlmaPaymentGetCommand extends AbstractAlmaCommand
         try {
             $payment = $this->alma->payments->fetch($input->getArgument('ID'));
             $this->io->title('Alma Payment from API');
-            $this->outputKeyValueTable(get_object_vars($payment), ['shipping_address', 'customer', 'payment_plan']);
+            $this->outputKeyValueTable(get_object_vars($payment), ['shipping_address', 'customer', 'payment_plan', 'orders']);
             $this->io->title('Alma Payment.customer from API');
             $this->outputKeyValueTable($payment->customer, ['addresses']);
             $this->io->title('Alma Payment.customer.addresses from API');
