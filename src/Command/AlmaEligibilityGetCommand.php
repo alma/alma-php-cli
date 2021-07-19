@@ -43,6 +43,32 @@ class AlmaEligibilityGetCommand extends AbstractAlmaCommand
         return $query;
     }
 
+    /**
+     * @param Eligibility $eligibility
+     * @param string|int  $cnt
+     *
+     * @return array
+     */
+    protected function buildRow(Eligibility $eligibility, $cnt): array
+    {
+        $reasons        = $eligibility->getReasons();
+        $constraints    = $eligibility->getConstraints();
+        $purchaseAmount = $constraints['purchase_amount'] ?? null;
+        $minimum        = $purchaseAmount ? $purchaseAmount['minimum'] : "";
+        $maximum        = $purchaseAmount ? $purchaseAmount['maximum'] : "";
+        $eligible       = $eligibility->isEligible() ? "Yes" : "No";
+        $plans          = $this->formatEligibility($eligibility);
+
+        return [
+            $cnt,
+            $eligible,
+            implode("\n", array_map([$this, 'formatPrimitive'], $plans)),
+            $reasons ? implode(", ", $reasons) : $this->formatPrimitive($reasons),
+            $this->formatMoney($minimum),
+            $this->formatMoney($maximum),
+        ];
+    }
+
     protected function configure()
     {
         $this
@@ -59,6 +85,12 @@ class AlmaEligibilityGetCommand extends AbstractAlmaCommand
                 InputOption::VALUE_IS_ARRAY | InputOption::VALUE_REQUIRED,
                 "Define installments to check (formatted as INSTALLMENT[-DEFERRED]\nwhere INSTALLMENT is an integer\nand where DEFERRED is formatted as integer[MD] for Months or Days",
                 ["1-15d", 2, 3, 4, 10]
+            )
+            ->addOption(
+                'raise-on-error',
+                'r',
+                InputOption::VALUE_NONE,
+                'throws Request Exception instead of return not eligible object !'
             )
             ->addOption(
                 'payload-file',
@@ -85,40 +117,21 @@ class AlmaEligibilityGetCommand extends AbstractAlmaCommand
         $installments = $input->getOption('installments');
         $version      = intval($input->getOption('api-version'));
         try {
-            if (!$eligibilityData  = $this->getEligibilityFromFile($input->getOption('payload-file'))) {
+            if (!$eligibilityData = $this->getEligibilityFromFile($input->getOption('payload-file'))) {
                 $eligibilityData = $this->getEligibilityData($amount, $installments, $version);
             }
             $this->outputFormat('json', $eligibilityData);
-            $eligibilities = $this->alma->payments->eligibility(
-                $eligibilityData
-            );
+            $eligibilities = $this->alma->payments->eligibility( $eligibilityData, $input->getOption('raise-on-error') );
         } catch (RequestError $e) {
             return $this->outputRequestError($e);
         }
-        if (!is_array($eligibilities) && !$eligibilities->isEligible()) {
-            $this->io->error('Not an Eligible request');
-            dump($eligibilities);
-
-            return self::FAILURE;
+        if ($eligibilities instanceof Eligibility) {
+            $eligibilities = [$eligibilities];
         }
         $headers = ["Fee Count", "Eligible", "Plans", "Reason", "Min", "Max"];
         $rows    = [];
         foreach ($eligibilities as $cnt => $eligibility) {
-            $reasons        = $eligibility->getReasons();
-            $constraints    = $eligibility->getConstraints();
-            $purchaseAmount = $constraints['purchase_amount'] ?? null;
-            $minimum        = $purchaseAmount ? $purchaseAmount['minimum'] : "";
-            $maximum        = $purchaseAmount ? $purchaseAmount['maximum'] : "";
-            $eligible       = $eligibility->isEligible() ? "Yes" : "No";
-            $plans          = $this->formatEligibility($eligibility);
-            $rows[]         = [
-                $cnt,
-                $eligible,
-                implode("\n", $plans),
-                $reasons ? implode(", ", $reasons) : "",
-                $this->formatMoney($minimum),
-                $this->formatMoney($maximum),
-            ];
+            $rows[] = $this->buildRow($eligibility, $cnt);
         }
         $this->io->title(
             sprintf(
@@ -141,22 +154,23 @@ class AlmaEligibilityGetCommand extends AbstractAlmaCommand
     private function formatEligibility(Eligibility $eligibility): array
     {
         $plans = [];
-        if ($paymentPlans = $eligibility->getPaymentPlan()) {
-            $barWidth = 0;
-            foreach ($paymentPlans as $paymentPlan) {
-                $planDefinition = sprintf(
-                    "date:'%s', fee:'%10s', amount:'%s'",
-                    $this->formatTimestamp($paymentPlan['due_date']),
-                    $this->formatMoney($paymentPlan['customer_fee']),
-                    $this->formatMoney($paymentPlan['purchase_amount'])
-                );
-                $plans[]        = $planDefinition;
-                $length         = strlen($planDefinition) - 4; // 2x€ = 6 chars instead 2
+        if (!$paymentPlans = $eligibility->getPaymentPlan()) {
+            return [null];
+        }
+        $barWidth = 0;
+        foreach ($paymentPlans as $paymentPlan) {
+            $planDefinition     = sprintf(
+                "date:'%s', fee:'%10s', amount:'%s'",
+                $this->formatTimestamp($paymentPlan['due_date']),
+                $this->formatMoney($paymentPlan['customer_fee']),
+                $this->formatMoney($paymentPlan['purchase_amount'])
+            );
+            $plans[]            = $planDefinition;
+            $length             = strlen($planDefinition) - 4; // 2x€ = 6 chars instead 2
                 $barWidth       = $length > $barWidth ? $length : $barWidth;
             }
             $plans[] = str_repeat("-", $barWidth);
 
-        }
 
         return $plans;
     }
@@ -199,14 +213,19 @@ class AlmaEligibilityGetCommand extends AbstractAlmaCommand
     }
 
     /**
-     * @param string $payloadFile
+     * @param null|string $payloadFile
      *
      * @return null|array
+     * @noinspection PhpIncludeInspection
      */
-    private function getEligibilityFromFile(string $payloadFile)
+    private function getEligibilityFromFile(?string $payloadFile): ?array
     {
+        if (!$payloadFile) {
+            return null;
+        }
         if (!file_exists($payloadFile)) {
             $this->io->warning(sprintf('payloadFile %s not found', $payloadFile));
+
             return null;
         }
         if (preg_match("#.php$#", $payloadFile)) {
