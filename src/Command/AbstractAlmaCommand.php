@@ -242,7 +242,7 @@ abstract class AbstractAlmaCommand extends Command
         if (is_null($value)) {
             return 'NULL';
         }
-        if (empty($value)) {
+        if (empty($value) && !is_int($value)) { // 0 is empty => :facepalm:
             return 'EMPTY';
         }
 
