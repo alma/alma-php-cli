@@ -2,9 +2,9 @@
 
 namespace App\Command;
 
-use Alma\API\Client;
 use Alma\API\Entities\Instalment;
 use Alma\API\RequestError;
+use App\API\AlmaClient;
 use DateTime;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -21,7 +21,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 abstract class AbstractAlmaCommand extends Command
 {
     public const DEFAULT_TABLE_HEADERS = ['Properties', 'Values'];
-    protected Client $alma;
+    protected AlmaClient $alma;
     protected SymfonyStyle $io;
 
     /**
@@ -257,11 +257,11 @@ abstract class AbstractAlmaCommand extends Command
     }
 
     /**
-     * @param Client $alma
+     * @param AlmaClient $alma
      *
      * @required
      */
-    public function setAlma(Client $alma)
+    public function setAlma(AlmaClient $alma)
     {
         $this->alma = $alma;
     }
