@@ -31,6 +31,7 @@ command-line-interface
 * `alma:eligibility:get`
 * `alma:payment:create`
 * `alma:payment:get`
+* `alma:accounting-transactions:get`
 
 You can found more about options & arguments with `--help` option (ex: `console alma:<command> --help`)
 
