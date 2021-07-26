@@ -26,7 +26,7 @@ class AlmaPaymentGetCommand extends AbstractAlmaCommand
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         try {
-            $payment = $this->alma->payments->fetch($input->getArgument('ID'));
+            $payment = $this->almaClient->payments->fetch($input->getArgument('ID'));
             $this->io->title('Alma Payment from API');
             $this->outputKeyValueTable(get_object_vars($payment), ['shipping_address', 'customer', 'payment_plan', 'orders']);
             $this->io->title('Alma Payment.customer from API');

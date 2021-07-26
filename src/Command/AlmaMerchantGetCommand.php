@@ -43,7 +43,7 @@ class AlmaMerchantGetCommand extends AbstractAlmaCommand
      */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $merchant = $this->alma->merchants->me();
+        $merchant = $this->almaClient->merchants->me();
         $this->outputMerchant($merchant);
         $this->outputLegalEntity($merchant);
 
@@ -101,7 +101,7 @@ class AlmaMerchantGetCommand extends AbstractAlmaCommand
             $this->io->title(sprintf('fee plans from %s', $source));
             switch ($source) {
                 case self::FEE_PLANS_API:
-                    foreach ($this->alma->merchants->feePlans(FeePlan::KIND_GENERAL, 'all', true) as $feePlan) {
+                    foreach ($this->almaClient->merchants->feePlans(FeePlan::KIND_GENERAL, 'all', true) as $feePlan) {
                         $fee_plans[] = $this->populateRowFromObject($feePlan);
                     }
                     break;

@@ -272,7 +272,7 @@ class AlmaPaymentCreateCommand extends AbstractAlmaCommand
             return self::SUCCESS;
         }
         try {
-            $payment = $this->alma->payments->create($data);
+            $payment = $this->almaClient->payments->create($data);
         } catch (RequestError $e) {
             return $this->outputRequestError($e);
 

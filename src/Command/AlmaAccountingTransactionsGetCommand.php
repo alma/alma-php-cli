@@ -18,7 +18,7 @@ class AlmaAccountingTransactionsGetCommand extends AbstractAlmaCommand
      */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $endpoint = new AlmaBase($this->alma->getContext());
+        $endpoint = new AlmaBase($this->almaClient->getContext());
         $this->io->title('/v1/accounting/transactions');
         foreach ($endpoint->request('/v1/accounting/transactions')->get()->json['data'] as $key => $datum) {
             $this->outputKeyValueTable(array_merge(['key' => $key], $datum));

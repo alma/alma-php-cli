@@ -121,7 +121,7 @@ class AlmaEligibilityGetCommand extends AbstractAlmaCommand
                 $eligibilityData = $this->getEligibilityData($amount, $installments, $version);
             }
             $this->outputFormat('json', $eligibilityData);
-            $eligibilities = $this->alma->payments->eligibility( $eligibilityData, $input->getOption('raise-on-error') );
+            $eligibilities = $this->almaClient->payments->eligibility( $eligibilityData, $input->getOption('raise-on-error') );
         } catch (RequestError $e) {
             return $this->outputRequestError($e);
         }

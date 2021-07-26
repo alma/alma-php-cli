@@ -21,7 +21,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 abstract class AbstractAlmaCommand extends Command
 {
     public const DEFAULT_TABLE_HEADERS = ['Properties', 'Values'];
-    protected AlmaClient $alma;
+    protected AlmaClient $almaClient;
     protected SymfonyStyle $io;
 
     /**
@@ -257,13 +257,13 @@ abstract class AbstractAlmaCommand extends Command
     }
 
     /**
-     * @param AlmaClient $alma
+     * @param AlmaClient $almaClient
      *
      * @required
      */
-    public function setAlma(AlmaClient $alma)
+    public function setAlmaClient(AlmaClient $almaClient)
     {
-        $this->alma = $alma;
+        $this->almaClient = $almaClient;
     }
 
 }
