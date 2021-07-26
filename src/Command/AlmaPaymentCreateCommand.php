@@ -25,6 +25,12 @@ class AlmaPaymentCreateCommand extends AbstractAlmaCommand
         self::BILLING_ADDRESS_TYPE,
         self::SHIPPING_ADDRESS_TYPE,
     ];
+	const ALLOWED_ORIGINS       = [
+		"pos_link",
+		"pos_sms",
+		"pos_device",
+		"online",
+	];
     const ADDRESSES_KEYS        = [
         'first_name',
         'last_name',
@@ -110,6 +116,7 @@ class AlmaPaymentCreateCommand extends AbstractAlmaCommand
                 InputOption::VALUE_NONE,
                 'provide this flag if you don\'t want provide payment billing nor shipping address informations (empty billing billing address will be set in payload)'
             )
+	        ->addOption('origin', null, InputOption::VALUE_REQUIRED, 'The payment origin (allowed values are [' . implode(", ", self::ALLOWED_ORIGINS) . ']', 'online')
             ->addOption('email', null, InputOption::VALUE_REQUIRED, 'customer email')
             ->addOption('phone', null, InputOption::VALUE_REQUIRED, 'customer phone')
             ->addOption('first-name', null, InputOption::VALUE_REQUIRED, 'customer first_name')
@@ -178,8 +185,13 @@ class AlmaPaymentCreateCommand extends AbstractAlmaCommand
         $cancelUrl  = $input->getOption('cancel-url');
         $customData = $input->getOption('custom-data');
         $locale     = $input->getOption('payment-locale');
+        $origin     = $input->getOption('origin');
+        if (!in_array($origin, self::ALLOWED_ORIGINS)) {
+        	throw new Exception("'$origin': invalid Origin !!!");
+        }
         $data       = [
-            'payment' => [
+	        'origin'             => $origin,
+	        'payment' => [
                 'purchase_amount'    => $amount,
                 'installments_count' => $installmentsCount,
             ],

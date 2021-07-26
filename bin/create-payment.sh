@@ -18,6 +18,7 @@ if [[ ! -e ".env.$env.local" ]] ; then
     exit 1
 fi
 console --env $env alma:payment:create $amount $default_opt \
+    --origin "pos_sms" \
     --first-name "John" \
     --last-name "Doe" \
     --email "john-doe@yopmail.fr" \
