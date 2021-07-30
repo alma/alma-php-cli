@@ -8,7 +8,7 @@ use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
-class AlmaPaymentGetCommand extends AbstractAlmaCommand
+class AlmaPaymentGetCommand extends AbstractReadAlmaCommand
 {
     protected static $defaultName = 'alma:payment:get';
     protected static $defaultDescription = 'Retrieve a payment by ID';

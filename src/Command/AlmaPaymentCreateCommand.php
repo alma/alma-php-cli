@@ -11,7 +11,7 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
-class AlmaPaymentCreateCommand extends AbstractAlmaCommand
+class AlmaPaymentCreateCommand extends AbstractWriteAlmaCommand
 {
     const REQUIRED_ARRAY = InputOption::VALUE_IS_ARRAY | InputOption::VALUE_REQUIRED;
     protected static $defaultName = 'alma:payment:create';
@@ -88,7 +88,7 @@ class AlmaPaymentCreateCommand extends AbstractAlmaCommand
                 InputOption::VALUE_NONE,
                 'should I output customer after create payment'
             )
-            ->addOption('output-orders', 'o', InputOption::VALUE_NONE, 'should I output orders after create payment')
+            ->addOption('output-orders', null, InputOption::VALUE_NONE, 'should I output orders after create payment')
             ->addOption(
                 'output-addresses',
                 'a',

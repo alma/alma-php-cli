@@ -8,7 +8,6 @@ use App\API\AlmaClient;
 use DateTime;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
-use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
@@ -16,22 +15,38 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  * Class AbstractAlmaCommand
  *
  * @package App\Command
- * @TODO split this abstract in 2 read & write classes
  */
 abstract class AbstractAlmaCommand extends Command
 {
     public const DEFAULT_TABLE_HEADERS = ['Properties', 'Values'];
     protected AlmaClient $almaClient;
-    protected SymfonyStyle $io;
+    protected ?SymfonyStyle $io = null;
+
+    protected function formatMoney($amount = 0): string
+    {
+        return sprintf("%.2f €", round(intval($amount) / 100, 2));
+    }
 
     /**
-     * AbstractAlmaCommand constructor.
+     * Format bool / null or empty values
+     *
+     * @param $value
+     *
+     * @return string
      */
-    public function __construct(string $name = null)
+    protected function formatPrimitive($value): string
     {
-        parent::__construct($name);
-        #TODO: pull down this process in an abstract write sub class
-        $this->addOption('force-live-env', null, InputOption::VALUE_NONE, 'force execution without interaction if live key is given in ALMA_API_KEY environment');
+        if (is_bool($value)) {
+            return $value ? 'TRUE' : 'FALSE';
+        }
+        if (is_null($value)) {
+            return 'NULL';
+        }
+        if (empty($value) && !is_int($value)) { // 0 is empty => :facepalm:
+            return 'EMPTY';
+        }
+
+        return $value;
     }
 
     /**
@@ -76,8 +91,12 @@ abstract class AbstractAlmaCommand extends Command
      *
      * @return string
      */
-    protected function implodeWithKeys(array $array, string $separator = "\n", string $keySeparator = ": ", int $keyLength = 15): string
-    {
+    protected function implodeWithKeys(
+        array $array,
+        string $separator = "\n",
+        string $keySeparator = ": ",
+        int $keyLength = 15
+    ): string {
         return implode(
             $separator,
             array_map(
@@ -92,6 +111,17 @@ abstract class AbstractAlmaCommand extends Command
                 array_keys($array)
             )
         );
+    }
+
+    /**
+     * @param InputInterface  $input
+     * @param OutputInterface $output
+     */
+    protected function initIo(InputInterface $input, OutputInterface $output): void
+    {
+        if (!$this->io) {
+            $this->io = new SymfonyStyle($input, $output);
+        }
     }
 
     protected function outputAddresses(array $addresses, array $additionalFields = [])
@@ -147,6 +177,13 @@ abstract class AbstractAlmaCommand extends Command
         }
 
         return true;
+    }
+
+    protected function outputFormatTable(array ...$data): void
+    {
+        foreach ($data as $datum) {
+            $this->outputKeyValueTable($datum);
+        }
     }
 
     /**
@@ -209,51 +246,9 @@ abstract class AbstractAlmaCommand extends Command
 
     public function run(InputInterface $input, OutputInterface $output): int
     {
-        $this->io = new SymfonyStyle($input, $output);
-        #TODO: pull down this process in an abstract write sub class
-        if (preg_match("#sk_live#", $_ENV['ALMA_API_KEY']) && !$input->getOption('force-live-env')) {
-            $this->io->warning("Your ALMA_API_KEY seems to be a LIVE environment API KEY");
-            $response = $this->io->choice(sprintf("Are you sure you want perform '%s' in LIVE environment ?", $this->getName()), ['No', 'Yes'], 'No');
-            if ($response === 'No') {
-                $this->io->info(sprintf('command "%s" halted by user', $this->getName()));
-                return self::SUCCESS;
-            }
-        }
+        $this->initIo($input, $output);
+
         return parent::run($input, $output);
-    }
-
-    protected function formatMoney($amount = 0): string
-    {
-        return sprintf("%.2f €", round(intval($amount) / 100, 2));
-    }
-
-    /**
-     * Format bool / null or empty values
-     *
-     * @param $value
-     *
-     * @return string
-     */
-    protected function formatPrimitive($value): string
-    {
-        if (is_bool($value)) {
-            return $value ? 'TRUE' : 'FALSE';
-        }
-        if (is_null($value)) {
-            return 'NULL';
-        }
-        if (empty($value) && !is_int($value)) { // 0 is empty => :facepalm:
-            return 'EMPTY';
-        }
-
-        return $value;
-    }
-
-    protected function outputFormatTable(array ...$data): void
-    {
-        foreach ($data as $datum) {
-            $this->outputKeyValueTable($datum);
-        }
     }
 
     /**

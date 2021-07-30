@@ -9,7 +9,7 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
-class AlmaEligibilityGetCommand extends AbstractAlmaCommand
+class AlmaEligibilityGetCommand extends AbstractReadAlmaCommand
 {
     protected static $defaultName = 'alma:eligibility:get';
     protected static $defaultDescription = 'Add a short description for your command';

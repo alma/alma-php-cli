@@ -11,7 +11,7 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
-class AlmaAccountingTransactionsGetCommand extends AbstractAlmaCommand
+class AlmaAccountingTransactionsGetCommand extends AbstractReadAlmaCommand
 {
     protected static $defaultName = 'alma:accounting-transactions:get';
     protected static $defaultDescription = 'Call /v1/accounting/transactions endpoint';
@@ -36,7 +36,7 @@ class AlmaAccountingTransactionsGetCommand extends AbstractAlmaCommand
             $request->setQueryParams($queryParams);
         }
         foreach ($request->get()->json['data'] as $key => $datum) {
-            $this->outputKeyValueTable(array_merge(['key' => $key], $datum));
+            $this->output(array_merge(['key' => $key], $datum), $input->getOption('output'));
         }
         return Command::SUCCESS;
     }
@@ -48,4 +48,5 @@ class AlmaAccountingTransactionsGetCommand extends AbstractAlmaCommand
             ->addOption('to', 't', InputOption::VALUE_REQUIRED, 'to date as YYYY-MM-DD [HH:mm:ss]')
         ;
     }
+
 }
