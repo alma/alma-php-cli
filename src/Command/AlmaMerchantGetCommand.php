@@ -128,9 +128,9 @@ class AlmaMerchantGetCommand extends AbstractReadAlmaCommand
             $this->formatPrimitive($fee_plan['allowed']),
             $this->formatDeferred($fee_plan['deferred_days'], $fee_plan['deferred_months']),
             $this->formatMoney($fee_plan['customer_fee_fixed']),
-            $this->formatMoney($fee_plan['customer_fee_variable']),
+            $this->formatPercent($fee_plan['customer_fee_variable']),
             $this->formatMoney($fee_plan['merchant_fee_fixed']),
-            $this->formatMoney($fee_plan['merchant_fee_variable']),
+            $this->formatPercent($fee_plan['merchant_fee_variable']),
             $this->formatMoney($fee_plan['min_purchase_amount']),
             $this->formatMoney($fee_plan['max_purchase_amount']),
         ];
@@ -148,9 +148,9 @@ class AlmaMerchantGetCommand extends AbstractReadAlmaCommand
             $this->formatPrimitive($feePlan->allowed),
             $this->formatDeferred($feePlan->deferred_days, $feePlan->deferred_months),
             $this->formatMoney($feePlan->customer_fee_fixed),
-            $this->formatMoney($feePlan->customer_fee_variable),
+            $this->formatPercent($feePlan->customer_fee_variable),
             $this->formatMoney($feePlan->merchant_fee_fixed),
-            $this->formatMoney($feePlan->merchant_fee_variable),
+            $this->formatPercent($feePlan->merchant_fee_variable),
             $this->formatMoney($feePlan->min_purchase_amount),
             $this->formatMoney($feePlan->max_purchase_amount),
         ];

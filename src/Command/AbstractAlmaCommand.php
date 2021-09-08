@@ -22,9 +22,19 @@ abstract class AbstractAlmaCommand extends Command
     protected AlmaClient $almaClient;
     protected ?SymfonyStyle $io = null;
 
+    protected function formatDouble($amount, string $sign): string
+    {
+        return sprintf("%.2f %s", round(intval($amount) / 100, 2), $sign);
+    }
+
     protected function formatMoney($amount = 0): string
     {
-        return sprintf("%.2f €", round(intval($amount) / 100, 2));
+        return $this->formatDouble($amount, '€');
+    }
+
+    protected function formatPercent($amount = 0): string
+    {
+        return $this->formatDouble($amount, '%');
     }
 
     /**
