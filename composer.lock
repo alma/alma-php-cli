@@ -4,20 +4,20 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "3cb4d261b3688fc995bbb01a70bf902e",
+    "content-hash": "470537bc7ad227b24cd029e02917531e",
     "packages": [
         {
             "name": "alma/alma-php-client",
-            "version": "dev-feat/eligibility-v2",
+            "version": "dev-feature/payment-plan-enhancement",
             "source": {
                 "type": "git",
                 "url": "https://github.com/alma/alma-php-client.git",
-                "reference": "3c71093c7eaf6bd2fef2ee4617d53849343acb74"
+                "reference": "9dbccbbb8b2febc78f518b00019f105c5f80dc03"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/alma/alma-php-client/zipball/3c71093c7eaf6bd2fef2ee4617d53849343acb74",
-                "reference": "3c71093c7eaf6bd2fef2ee4617d53849343acb74",
+                "url": "https://api.github.com/repos/alma/alma-php-client/zipball/9dbccbbb8b2febc78f518b00019f105c5f80dc03",
+                "reference": "9dbccbbb8b2febc78f518b00019f105c5f80dc03",
                 "shasum": ""
             },
             "require": {
@@ -54,9 +54,9 @@
             "description": "PHP API client for the Alma payments API",
             "support": {
                 "issues": "https://github.com/alma/alma-php-client/issues",
-                "source": "https://github.com/alma/alma-php-client/tree/feat/eligibility-v2"
+                "source": "https://github.com/alma/alma-php-client/tree/feature/payment-plan-enhancement"
             },
-            "time": "2021-06-30T14:08:37+00:00"
+            "time": "2021-09-09T07:36:33+00:00"
         },
         {
             "name": "monolog/monolog",
