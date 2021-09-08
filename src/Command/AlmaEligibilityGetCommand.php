@@ -160,7 +160,7 @@ class AlmaEligibilityGetCommand extends AbstractReadAlmaCommand
         $barWidth = 0;
         foreach ($paymentPlans as $paymentPlan) {
             $planDefinition     = sprintf(
-                "date:'%s', fee:'%10s', amount:'%s'",
+                "date:'%s', C_fee:'%10s', amount:'%s'",
                 $this->formatTimestamp($paymentPlan['due_date']),
                 $this->formatMoney($paymentPlan['customer_fee']),
                 $this->formatMoney($paymentPlan['purchase_amount'])
