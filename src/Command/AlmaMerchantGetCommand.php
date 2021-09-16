@@ -13,6 +13,7 @@ class AlmaMerchantGetCommand extends AbstractReadAlmaCommand
 {
     const FEE_PLANS_TABLE_HEADERS = [
         'cnt',
+        'kind',
         'allowed',
         'deferred',
         'cust_fee_fix',
@@ -125,6 +126,7 @@ class AlmaMerchantGetCommand extends AbstractReadAlmaCommand
     {
         return [
             $fee_plan['installments_count'],
+            $this->formatPrimitive($fee_plan['kind']),
             $this->formatPrimitive($fee_plan['allowed']),
             $this->formatDeferred($fee_plan['deferred_days'], $fee_plan['deferred_months']),
             $this->formatMoney($fee_plan['customer_fee_fixed']),
@@ -145,6 +147,7 @@ class AlmaMerchantGetCommand extends AbstractReadAlmaCommand
     {
         return [
             $feePlan->installments_count,
+            $this->formatPrimitive($feePlan->kind),
             $this->formatPrimitive($feePlan->allowed),
             $this->formatDeferred($feePlan->deferred_days, $feePlan->deferred_months),
             $this->formatMoney($feePlan->customer_fee_fixed),
