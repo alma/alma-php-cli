@@ -58,10 +58,12 @@ class AlmaEligibilityGetCommand extends AbstractReadAlmaCommand
         $maximum        = $purchaseAmount ? $purchaseAmount['maximum'] : "";
         $eligible       = $eligibility->isEligible() ? "Yes" : "No";
         $plans          = $this->formatEligibility($eligibility);
+        $annualRate     = $eligibility->getAnnualInterestRate();
 
         return [
             $cnt,
             $eligible,
+            is_null($annualRate) ? $this->formatPrimitive($annualRate) : $this->formatPercent($annualRate),
             implode("\n", array_map([$this, 'formatPrimitive'], $plans)),
             $reasons ? implode(", ", $reasons) : $this->formatPrimitive($reasons),
             $this->formatMoney($minimum),
@@ -128,7 +130,7 @@ class AlmaEligibilityGetCommand extends AbstractReadAlmaCommand
         if ($eligibilities instanceof Eligibility) {
             $eligibilities = [$eligibilities];
         }
-        $headers = ["Fee Count", "Eligible", "Plans", "Reason", "Min", "Max"];
+        $headers = ["Fee Count", "Eligible", "TAEG", "Plans", "Reason", "Min", "Max"];
         $rows    = [];
         foreach ($eligibilities as $cnt => $eligibility) {
             $rows[] = $this->buildRow($eligibility, $cnt);
