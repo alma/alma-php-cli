@@ -252,20 +252,19 @@ class AlmaPaymentCreateCommand extends AbstractWriteAlmaCommand
         }
         if ($this->checkArrayValues($billingAddress)) {
             $data['payment']['billing_address'] = $billingAddress;
-//            $customerAddresses[]                         = $billingAddress;
             $payloadAddresses['payment-billing-address'] = $billingAddress;
         }
         if ($this->checkArrayValues($shippingAddress)) {
             $data['payment']['shipping_address'] = $shippingAddress;
-//            $customerAddresses[]                          = $shippingAddress;
             $payloadAddresses['payment-shipping-address'] = $shippingAddress;
         }
         if (!empty($customerAddresses)) {
             $data['customer']['addresses'] = $customerAddresses;
         }
-        if (!$this->checkArrayValues($shippingAddress) && !$this->checkArrayValues(
-                $shippingAddress
-            ) && $input->getOption('force-empty-payment-address')) {
+        if (!$this->checkArrayValues($shippingAddress)
+            && !$this->checkArrayValues($billingAddress)
+            && $input->getOption('force-empty-payment-address')
+        ) {
             // force an empty billing address
             $data['payment']['billing_address'] = [];
             $payloadAddresses['payment-billing-address'] = [];
