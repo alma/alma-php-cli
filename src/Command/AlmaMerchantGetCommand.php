@@ -5,6 +5,7 @@ namespace App\Command;
 use Alma\API\Entities\FeePlan;
 use Alma\API\Entities\Merchant;
 use Alma\API\RequestError;
+use App\Command\Meta\AbstractReadAlmaCommand;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -63,7 +64,7 @@ class AlmaMerchantGetCommand extends AbstractReadAlmaCommand
         }
         if ($deferred_months > 0) {
             if ($formatted) {
-                // should not be occurs because: L'utilisation des mois et jours différés est mutuellement exclusive
+                // should not be occurs because deferred months & days are mutually exclusives
                 $formatted .= " + ";
             }
             $formatted .= sprintf("%s months", $deferred_months);

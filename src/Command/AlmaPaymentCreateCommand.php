@@ -4,8 +4,9 @@ namespace App\Command;
 
 use Alma\API\Entities\Order;
 use Alma\API\RequestError;
+use App\Command\Meta\AbstractWriteAlmaCommand;
+use App\Command\Meta\DisplayOutputAddressInterface;
 use Exception;
-use InvalidArgumentException;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -13,36 +14,15 @@ use Symfony\Component\Console\Output\OutputInterface;
 
 class AlmaPaymentCreateCommand extends AbstractWriteAlmaCommand
 {
-    const REQUIRED_ARRAY = InputOption::VALUE_IS_ARRAY | InputOption::VALUE_REQUIRED;
     protected static $defaultName = 'alma:payment:create';
     protected static $defaultDescription = 'Create payment with given informations then output informations about payload & created payment';
 
-    const SHIPPING_ADDRESS_TYPE = 'shipping';
-    const BILLING_ADDRESS_TYPE  = 'billing';
-    const CUSTOMER_ADDRESS_TYPE = 'customer';
-    const ADDRESSES_TYPES       = [
-        self::CUSTOMER_ADDRESS_TYPE,
-        self::BILLING_ADDRESS_TYPE,
-        self::SHIPPING_ADDRESS_TYPE,
-    ];
-	const ALLOWED_ORIGINS       = [
+    const ALLOWED_ORIGINS       = [
 		"pos_link",
 		"pos_sms",
 		"pos_device",
 		"online",
 	];
-    const ADDRESSES_KEYS        = [
-        'first_name',
-        'last_name',
-        'email',
-        'phone',
-        'company',
-        'line1',
-        'line2',
-        'postal_code',
-        'city',
-        'country',
-    ];
 
     /**
      * @param string         $type
@@ -53,7 +33,7 @@ class AlmaPaymentCreateCommand extends AbstractWriteAlmaCommand
     protected function buildAddressFrom(string $type, InputInterface $input): array
     {
         $address = [];
-        foreach (self::ADDRESSES_KEYS as $key) {
+        foreach (DisplayOutputAddressInterface::ADDRESSES_KEYS as $key) {
             $value = $input->getOption($this->getAddressOptionName($type, $key));
             if ($value) {
                 $address[$key] = $value;
@@ -137,7 +117,7 @@ class AlmaPaymentCreateCommand extends AbstractWriteAlmaCommand
             ->addOption(
                 'custom-data',
                 null,
-                self::REQUIRED_ARRAY,
+                self::INPUT_OPTION_REQUIRED_ARRAY,
                 'custom data for payment formatted as key:value',
                 ['client:alma-cli']
             )
@@ -146,7 +126,7 @@ class AlmaPaymentCreateCommand extends AbstractWriteAlmaCommand
             ->addOption('customer-edit-url', null, InputOption::VALUE_REQUIRED, 'you website edit url for customer')
         ;
         foreach (self::ADDRESSES_TYPES as $type) {
-            foreach (self::ADDRESSES_KEYS as $key) {
+            foreach (DisplayOutputAddressInterface::ADDRESSES_KEYS as $key) {
                 $this->addOption(
                     $this->getAddressOptionName($type, $key),
                     null,
@@ -241,9 +221,9 @@ class AlmaPaymentCreateCommand extends AbstractWriteAlmaCommand
 
         $data = $this->defaultPayload($amount, $installmentsCount, $input);
 
-        $customerAddress   = $this->buildAddressFrom(self::CUSTOMER_ADDRESS_TYPE, $input);
-        $billingAddress    = $this->buildAddressFrom(self::BILLING_ADDRESS_TYPE, $input);
-        $shippingAddress   = $this->buildAddressFrom(self::SHIPPING_ADDRESS_TYPE, $input);
+        $customerAddress   = $this->buildAddressFrom('customer', $input);
+        $billingAddress    = $this->buildAddressFrom('billing', $input);
+        $shippingAddress   = $this->buildAddressFrom('shipping', $input);
         $payloadAddresses  = [];
         $customerAddresses = [];
         if ($this->checkArrayValues($customerAddress)) {
@@ -333,8 +313,9 @@ class AlmaPaymentCreateCommand extends AbstractWriteAlmaCommand
 
     /**
      * @param array $data
+     * @override
      */
-    protected function outputFormatTable(array ... $data): void
+    public function outputFormatTable(array ... $data): void
     {
         if (empty($data)) {
             return;
@@ -350,15 +331,6 @@ class AlmaPaymentCreateCommand extends AbstractWriteAlmaCommand
         $this->outputKeyValueTable($data[0]['customer'], ['addresses']);
         $this->io->title('Payload Order');
         $this->outputKeyValueTable($data[0]['order']);
-    }
-
-    private function getAddressOptionName(string $type, string $key): string
-    {
-        if (!in_array($type, self::ADDRESSES_TYPES)) {
-            throw new InvalidArgumentException(sprintf('%s: BAD ADDRESS TYPE', $type));
-        }
-
-        return sprintf('%s-%s', $type, str_replace("_", "-", $key));
     }
 
     /**

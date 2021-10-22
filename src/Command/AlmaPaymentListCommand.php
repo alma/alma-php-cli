@@ -4,7 +4,7 @@ namespace App\Command;
 
 use Alma\API\Endpoints\Payments;
 use Alma\API\RequestError;
-use Alma\API\Response;
+use App\Command\Meta\AbstractReadAlmaCommand;
 use App\Endpoints\AlmaBase;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;

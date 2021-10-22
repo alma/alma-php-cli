@@ -4,6 +4,7 @@ namespace App\Command;
 
 use Alma\API\Endpoints\Results\Eligibility;
 use Alma\API\RequestError;
+use App\Command\Meta\AbstractReadAlmaCommand;
 use Exception;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -220,7 +221,6 @@ class AlmaEligibilityGetCommand extends AbstractReadAlmaCommand
      * @param null|string $payloadFile
      *
      * @return null|array
-     * @noinspection PhpIncludeInspection
      */
     private function getEligibilityFromFile(?string $payloadFile): ?array
     {

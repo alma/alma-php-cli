@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Command;
+namespace App\Command\Meta;
 
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -14,9 +14,6 @@ use Symfony\Component\Console\Output\OutputInterface;
 abstract class AbstractWriteAlmaCommand extends AbstractReadAlmaCommand
 {
 
-    /**
-     * AbstractAlmaCommand constructor.
-     */
     public function __construct(string $name = null)
     {
         parent::__construct($name);
@@ -26,7 +23,6 @@ abstract class AbstractWriteAlmaCommand extends AbstractReadAlmaCommand
     public function run(InputInterface $input, OutputInterface $output): int
     {
         $this->initIo($input, $output);
-        #TODO: pull down this process in an abstract write sub class
         if (preg_match("#sk_live#", $_ENV['ALMA_API_KEY']) && !$input->getOption('force-live-env')) {
             $this->io->warning("Your ALMA_API_KEY seems to be a LIVE environment API KEY");
             $response = $this->io->choice(

@@ -3,6 +3,7 @@
 namespace App\Command;
 
 use Alma\API\RequestError;
+use App\Command\Meta\AbstractReadAlmaCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
@@ -34,7 +35,7 @@ class AlmaPaymentGetCommand extends AbstractReadAlmaCommand
             $this->io->title('Alma Payment.customer.addresses from API');
             $this->outputAddresses($payment->customer['addresses'], ['id', 'created']);
             $this->io->title('Alma Payment.payment_plan from API');
-            // TODO change content according lates format for outputPaymentPlans method
+            // TODO change content according rates format for outputPaymentPlans method
             $this->outputPaymentPlans($payment->payment_plan);
         } catch (RequestError $e) {
             return $this->outputRequestError($e);

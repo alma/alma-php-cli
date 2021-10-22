@@ -3,6 +3,7 @@
 namespace App\Command;
 
 use Alma\API\RequestError;
+use App\Command\Meta\AbstractReadAlmaCommand;
 use App\Endpoints\AlmaBase;
 use DateTime;
 use Exception;
