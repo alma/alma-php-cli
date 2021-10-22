@@ -25,6 +25,7 @@ services:
     # please note that last definitions always *replace* previous ones
 
     App\API\AlmaClient:
+        public: true
         arguments:
             - '%env(ALMA_API_KEY)%'
             -
