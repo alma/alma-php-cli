@@ -103,10 +103,22 @@ class AlmaEligibilityGetCommand extends AbstractReadAlmaCommand
             )
             ->addOption(
                 'api-version',
-                null,
+                'A',
                 InputOption::VALUE_REQUIRED,
                 'Eligibility version to use',
                 1
+            )
+            ->addOption(
+                'shipping-country',
+                's',
+                InputOption::VALUE_REQUIRED,
+                'force shipping_address.country'
+            )
+            ->addOption(
+                'billing-country',
+                'b',
+                InputOption::VALUE_REQUIRED,
+                'force billing_address.country'
             )
         ;
     }
@@ -120,11 +132,40 @@ class AlmaEligibilityGetCommand extends AbstractReadAlmaCommand
         $installments = $input->getOption('installments');
         $version      = intval($input->getOption('api-version'));
         try {
-            if (!$eligibilityData = $this->getEligibilityFromFile($input->getOption('payload-file'))) {
-                $eligibilityData = $this->getEligibilityData($amount, $installments, $version);
+            $eligibilityData = null;
+            $payloadFile     = $input->getOption('payload-file');
+            if ($payloadFile) {
+                if (!$eligibilityData = $this->getEligibilityFromFile($payloadFile)) {
+                    throw new Exception(
+                        sprintf("fail to extract eligibility data from '%s':\n%s", $payloadFile, $eligibilityData)
+                    );
+                }
+                $title = sprintf(
+                    'Check Eligibility v%s with following payload file %s',
+                    $version,
+                    $payloadFile
+                );
+            }
+            if (!$eligibilityData) {
+                $eligibilityData = $this->getEligibilityData(
+                    $amount,
+                    $installments,
+                    $version,
+                    $input->getOption('billing-country') ?: "",
+                    $input->getOption('shipping-country') ?: ""
+                );
+                $title           = sprintf(
+                    'Check Eligibility v%s for %s on following installments [%s]',
+                    $version,
+                    $this->formatMoney($amount),
+                    implode(', ', $installments)
+                );
             }
             $this->outputFormat('json', $eligibilityData);
-            $eligibilities = $this->almaClient->payments->eligibility( $eligibilityData, $input->getOption('raise-on-error') );
+            $eligibilities = $this->almaClient->payments->eligibility(
+                $eligibilityData,
+                $input->getOption('raise-on-error')
+            );
         } catch (RequestError $e) {
             return $this->outputRequestError($e);
         }
@@ -136,14 +177,7 @@ class AlmaEligibilityGetCommand extends AbstractReadAlmaCommand
         foreach ($eligibilities as $cnt => $eligibility) {
             $rows[] = $this->buildRow($eligibility, $cnt);
         }
-        $this->io->title(
-            sprintf(
-                'Check Eligibility v%s for %s on following installments [%s]',
-                $version,
-                $this->formatMoney($amount),
-                implode(', ', $installments)
-            )
-        );
+        $this->io->title($title);
         $this->io->table($headers, $rows);
 
         return self::SUCCESS;
@@ -181,20 +215,29 @@ class AlmaEligibilityGetCommand extends AbstractReadAlmaCommand
     }
 
     /**
-     * @param int   $amount
-     * @param array $installments
-     * @param int   $version
+     * @param int    $amount
+     * @param array  $installments
+     * @param int    $version
+     * @param string $billingCountry
+     * @param string $shippingCountry
      *
      * @return array[]
      * @throws Exception
      */
-    protected function getEligibilityData(int $amount, array $installments, int $version): array
-    {
+    protected function getEligibilityData(
+        int $amount,
+        array $installments,
+        int $version,
+        string $billingCountry = "",
+        string $shippingCountry = ""
+    ): array {
         switch ($version) {
             case 1:
                 return [
                     'payment' => [
                         'purchase_amount'    => $amount,
+                        'shipping_address'   => ['country' => $shippingCountry],
+                        'billing_address'    => ['country' => $billingCountry],
                         'installments_count' => array_map(
                             function ($installment) {
                                 return intval($installment);
@@ -209,7 +252,12 @@ class AlmaEligibilityGetCommand extends AbstractReadAlmaCommand
                     $queries[] = $this->buildEligibilityQueryParams($installment_definition);
                 }
 
-                return ['purchase_amount' => $amount, 'queries' => $queries];
+                return [
+                    'purchase_amount'  => $amount,
+                    'shipping_address' => ['country' => $shippingCountry],
+                    'billing_address'  => ['country' => $billingCountry],
+                    'queries'          => $queries,
+                ];
 
 
             default:
@@ -236,7 +284,7 @@ class AlmaEligibilityGetCommand extends AbstractReadAlmaCommand
             return require($payloadFile);
         }
         if (preg_match("#.json$#", $payloadFile)) {
-            return json_decode($payloadFile, true);
+            return json_decode(file_get_contents($payloadFile), true);
         }
         $this->io->warning(sprintf('payloadFile %s is not a valid file ext (only .json & .php are allowed)', $payloadFile));
         return null;
