@@ -35,6 +35,19 @@ command-line-interface
 
 You can found more about options & arguments with `--help` option (ex: `console alma:<command> --help`)
 
+## Dynamic environments & live write limitations
+
+To manage many env (merchants, live, test, dev) you just have to:
+
+1. copy `.env` file to .env.`<merch_name>[live|test|dev]`.local
+1. remove lines before `ALMA_` variables
+1. update `ALMA_API_KEY` at least (and other variable if needed)
+1. launch your command with `--env` **OR WITHOUT**
+    * if `--env` option is not provided: interactive select list with `<mech_name>`-`[live|test|dev]` will be purposed before launch command
+    * if `ALMA_API_KEY` is not found: **command will be failed**
+    * if `ALMA_API_KEY` is something like `sk_live_***` and we are in write context (`alma:payment:create` for example):
+    **interactive confirmation will be requested** (until you add `--force-live-env` option)
+
 ## TODO
 
 * Auto-wiring commands into `Kernel.php`  
