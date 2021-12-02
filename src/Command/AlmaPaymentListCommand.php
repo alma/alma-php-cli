@@ -6,6 +6,7 @@ use Alma\API\Endpoints\Payments;
 use Alma\API\RequestError;
 use App\Command\Meta\AbstractReadAlmaCommand;
 use App\Endpoints\AlmaBase;
+use Exception;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -38,6 +39,7 @@ class AlmaPaymentListCommand extends AbstractReadAlmaCommand
 
     /**
      * @throws RequestError
+     * @throws Exception
      */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
@@ -55,7 +57,7 @@ class AlmaPaymentListCommand extends AbstractReadAlmaCommand
             $request->setQueryParams($queryParams);
         }
 
-        $headers = [
+        $headers  = [
             'idx',
             'ID',
             'left_to_pay',
@@ -68,7 +70,16 @@ class AlmaPaymentListCommand extends AbstractReadAlmaCommand
             'created',
             'updated',
         ];
-        $this->io->table($headers, $this->formatPayments($request->get()->json['data']));
+        $response = $request->get();
+        if ($response->isError()) {
+            throw new Exception($response->errorMessage);
+        }
+        $json = $response->json;
+        $data = $json;
+        if (isset($json['data'])) {
+            $data = $json['data'];
+        }
+        $this->io->table($headers, $this->formatPayments($data));
 
         return Command::SUCCESS;
     }
