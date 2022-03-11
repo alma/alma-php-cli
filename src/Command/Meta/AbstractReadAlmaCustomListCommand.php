@@ -21,6 +21,19 @@ abstract class AbstractReadAlmaCustomListCommand extends AbstractReadAlmaCommand
     const CUSTOM_ENDPOINT_URI = 'TO REPLACE BY VALID ALMA API LIST ENDPOINT';
 
     /**
+     * A method to override if you want override default params to send to GET request.
+     *
+     * @param array          $queryParams
+     * @param InputInterface $input
+     *
+     * @return array
+     */
+    protected function bindParams(array $queryParams, InputInterface $input): array
+    {
+        return $queryParams;
+    }
+
+    /**
      * @throws RequestError
      * @throws Exception
      */
@@ -36,9 +49,7 @@ abstract class AbstractReadAlmaCustomListCommand extends AbstractReadAlmaCommand
         if ($to = $input->getOption('to')) {
             $queryParams['created[max]'] = (new DateTime($to))->getTimestamp();
         }
-        if ($queryParams) {
-            $request->setQueryParams($queryParams);
-        }
+        $request->setQueryParams($this->bindParams($queryParams, $input));
         foreach ($request->get()->json['data'] as $key => $datum) {
             $this->output(array_merge(['key' => $key], $datum), $input->getOption('output'));
         }
