@@ -46,6 +46,9 @@ abstract class AbstractReadAlmaCustomListCommand extends AbstractReadAlmaCommand
         if ($from = $input->getOption('from')) {
             $queryParams['created[min]'] = (new DateTime($from))->getTimestamp();
         }
+        if ($limit = $input->getOption('limit')) {
+            $queryParams['limit'] = intval($limit);
+        }
         if ($to = $input->getOption('to')) {
             $queryParams['created[max]'] = (new DateTime($to))->getTimestamp();
         }
@@ -61,6 +64,7 @@ abstract class AbstractReadAlmaCustomListCommand extends AbstractReadAlmaCommand
         $this
             ->addOption('from', 'f', InputOption::VALUE_REQUIRED, 'from date as YYYY-MM-DD [HH:mm:ss]')
             ->addOption('to', 't', InputOption::VALUE_REQUIRED, 'to date as YYYY-MM-DD [HH:mm:ss]')
+            ->addOption('limit', 'l', InputOption::VALUE_REQUIRED, 'count limitation')
         ;
     }
 
