@@ -93,7 +93,7 @@ trait DisplayOutputTrait
                 $rows[] = [$key, $this->implodeWithKeys($value)];
                 continue;
             }
-            if ($key === 'created') {
+            if (in_array($key, ['created', 'updated', 'available_on'])) {
                 $rows[] = [$key, $this->formatTimestamp($value)];
                 continue;
             }
