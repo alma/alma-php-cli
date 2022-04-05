@@ -89,6 +89,19 @@ class AlmaPaymentCreateCommand extends AbstractWriteAlmaCommand
                 'do not perform really the create payment action (useful if you just want to see the payload)'
             )
             ->addOption('installments', 'i', InputOption::VALUE_REQUIRED, 'pnx installments count', 3)
+            ->addOption(
+                'deferred_trigger',
+                null,
+                InputOption::VALUE_NONE,
+                'if it is a payment with deferred upon trigger'
+            )
+            ->addOption(
+                'deferred_trigger_description',
+                null,
+                InputOption::VALUE_REQUIRED,
+                'the deferred trigger description',
+                'At Shipping'
+            )
             ->addOption('payment-locale', 'l', InputOption::VALUE_REQUIRED, 'locale for payement', 'fr')
             ->addOption(
                 'force-empty-payment-address',
@@ -220,6 +233,11 @@ class AlmaPaymentCreateCommand extends AbstractWriteAlmaCommand
         }
 
         $data = $this->defaultPayload($amount, $installmentsCount, $input);
+
+        if ($input->getOption('deferred_trigger')) {
+            $data['payment']['deferred']             = 'trigger';
+            $data['payment']['deferred_description'] = $input->getOption('deferred_trigger_description');
+        }
 
         $customerAddress   = $this->buildAddressFrom('customer', $input);
         $billingAddress    = $this->buildAddressFrom('billing', $input);
