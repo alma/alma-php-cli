@@ -37,13 +37,13 @@ trait FormatterTrait
     protected function formatPrimitive($value): string
     {
         if (is_bool($value)) {
-            return $value ? 'TRUE' : 'FALSE';
+            return $value ? '<fg=cyan>TRUE</>' : '<fg=cyan>FALSE</>';
         }
         if (is_null($value)) {
-            return 'NULL';
+            return '<fg=cyan>NULL</>';
         }
         if (empty($value) && !is_int($value)) { // 0 is empty => :facepalm:
-            return 'EMPTY';
+            return '<fg=cyan>EMPTY</>';
         }
 
         return $value;
