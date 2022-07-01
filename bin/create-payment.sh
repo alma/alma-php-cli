@@ -19,6 +19,8 @@ if [[ ! -e ".env.$env.local" ]] ; then
 fi
 console --env $env alma:payment:create $amount $default_opt \
     --origin "online" \
+    --return-url "https://localhost:8000/return-url" \
+    --ipn-url "https://localhost:8000/ipn-url" \
     --payment-locale "es_ES" \
     --first-name "John" \
     --last-name "Doe" \
