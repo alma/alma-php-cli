@@ -102,6 +102,7 @@ class AlmaPaymentCreateCommand extends AbstractWriteAlmaCommand
             ->addOption('email', null, InputOption::VALUE_REQUIRED, 'customer email')
             ->addOption('phone', null, InputOption::VALUE_REQUIRED, 'customer phone')
             ->addOption('first-name', null, InputOption::VALUE_REQUIRED, 'customer first_name')
+            ->addOption('birth-date', null, InputOption::VALUE_REQUIRED, 'customer birth_date')
             ->addOption('last-name', null, InputOption::VALUE_REQUIRED, 'customer last_name')
             ->addOption('return-url', null, InputOption::VALUE_REQUIRED, 'a website return URL after alma checkout')
             ->addOption(
@@ -152,6 +153,7 @@ class AlmaPaymentCreateCommand extends AbstractWriteAlmaCommand
         $customer = [
             'first_name' => $input->getOption('first-name'),
             'last_name'  => $input->getOption('last-name'),
+            'birth_date'  => $input->getOption('birth-date'),
             'email'      => $input->getOption('email'),
             'phone'      => $input->getOption('phone'),
         ];
