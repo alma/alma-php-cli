@@ -81,6 +81,8 @@ class AlmaMerchantGetCommand extends AbstractReadAlmaCommand
     {
         $this->io->title('Legal Entity');
         $this->outputKeyValueTable($merchant->legal_entity, ['address']);
+        $this->io->title('Legal Entity Address');
+        $this->outputKeyValueTable($merchant->legal_entity['address']);
     }
 
     /**
