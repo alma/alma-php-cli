@@ -4,6 +4,7 @@
 # Put parameters here that don't need to change on each machine where the app is deployed
 # https://symfony.com/doc/current/best_practices.html#use-parameters-for-application-configuration
 parameters:
+    app.version: 1.0.0
 
 services:
     # default configuration for services in *this* file
@@ -26,9 +27,15 @@ services:
 
     App\API\AlmaClient:
         public: true
+        calls:
+            - setVersion: ['%app.version%', '@App\Tools\Versioning\GitLoader']
         arguments:
             - '%env(ALMA_API_KEY)%'
             -
                 mode: '%env(ALMA_API_MODE)%'
                 logger: '@logger'
                 api_root: '%env(ALMA_API_URL)%'
+
+    App\Tools\Versioning\GitLoader:
+        arguments:
+          ['%kernel.project_dir%']
