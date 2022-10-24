@@ -5,6 +5,7 @@ namespace App\Command;
 use Alma\API\Endpoints\Results\Eligibility;
 use Alma\API\RequestError;
 use App\Command\Meta\AbstractReadAlmaCommand;
+use App\Command\Meta\DisplayOutputPayloadTrait;
 use Exception;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -12,6 +13,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 
 class AlmaEligibilityGetCommand extends AbstractReadAlmaCommand
 {
+    use DisplayOutputPayloadTrait;
     protected static $defaultName = 'alma:eligibility:get';
     protected static $defaultDescription = 'Add a short description for your command';
 
@@ -74,6 +76,7 @@ class AlmaEligibilityGetCommand extends AbstractReadAlmaCommand
 
     protected function configure()
     {
+        $this->configureOutputPayloadOptions();
         $this
             ->addOption(
                 'amount',
@@ -97,7 +100,7 @@ class AlmaEligibilityGetCommand extends AbstractReadAlmaCommand
             )
             ->addOption(
                 'payload-file',
-                'p',
+                'P',
                 InputOption::VALUE_REQUIRED,
                 'give payload directly from file instead build it from parameters (give a .php or .json valid file as parameter)'
             )
@@ -131,6 +134,12 @@ class AlmaEligibilityGetCommand extends AbstractReadAlmaCommand
         $amount       = $input->getOption('amount');
         $installments = $input->getOption('installments');
         $version      = intval($input->getOption('api-version'));
+        $title        = sprintf(
+            'Check Eligibility v%s for %s on following installments [%s]',
+            $version,
+            $this->formatMoney($amount),
+            implode(', ', $installments)
+        );
         try {
             $eligibilityData = null;
             $payloadFile     = $input->getOption('payload-file');
@@ -154,14 +163,8 @@ class AlmaEligibilityGetCommand extends AbstractReadAlmaCommand
                     $input->getOption('billing-country') ?: "",
                     $input->getOption('shipping-country') ?: ""
                 );
-                $title           = sprintf(
-                    'Check Eligibility v%s for %s on following installments [%s]',
-                    $version,
-                    $this->formatMoney($amount),
-                    implode(', ', $installments)
-                );
             }
-            $this->outputFormat('json', $eligibilityData);
+            $this->outputPayload($input, $eligibilityData);
             $eligibilities = $this->almaClient->payments->eligibility(
                 $eligibilityData,
                 $input->getOption('raise-on-error')
@@ -196,7 +199,7 @@ class AlmaEligibilityGetCommand extends AbstractReadAlmaCommand
         }
         $barWidth = 0;
         foreach ($paymentPlan as $installment) {
-            $planDefinition     = sprintf(
+            $planDefinition = sprintf(
                 "date:'%s', C_fee:'%10s', interest:'%10s', P_amnt:'%10s', T_amnt:'%10s'",
                 $this->formatTimestamp($installment['due_date']),
                 $this->formatMoney($installment['customer_fee']),
@@ -204,11 +207,11 @@ class AlmaEligibilityGetCommand extends AbstractReadAlmaCommand
                 $this->formatMoney($installment['purchase_amount']),
                 $this->formatMoney($installment['total_amount'])
             );
-            $plans[]            = $planDefinition;
-            $length             = strlen($planDefinition) - 4; // 2x€ = 6 chars instead 2
-                $barWidth       = $length > $barWidth ? $length : $barWidth;
-            }
-            $plans[] = str_repeat("-", $barWidth);
+            $plans[]        = $planDefinition;
+            $length         = strlen($planDefinition) - 4; // 2x€ = 6 chars instead 2
+            $barWidth       = $length > $barWidth ? $length : $barWidth;
+        }
+        $plans[] = str_repeat("-", $barWidth);
 
 
         return $plans;
@@ -286,7 +289,10 @@ class AlmaEligibilityGetCommand extends AbstractReadAlmaCommand
         if (preg_match("#.json$#", $payloadFile)) {
             return json_decode(file_get_contents($payloadFile), true);
         }
-        $this->io->warning(sprintf('payloadFile %s is not a valid file ext (only .json & .php are allowed)', $payloadFile));
+        $this->io->warning(
+            sprintf('payloadFile %s is not a valid file ext (only .json & .php are allowed)', $payloadFile)
+        );
+
         return null;
     }
 }

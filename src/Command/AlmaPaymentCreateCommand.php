@@ -5,6 +5,7 @@ namespace App\Command;
 use Alma\API\RequestError;
 use App\Command\Meta\AbstractWriteAlmaCommand;
 use App\Command\Meta\DisplayOutputAddressInterface;
+use App\Command\Meta\DisplayOutputPayloadTrait;
 use App\Command\Meta\DisplayOutputPaymentTrait;
 use Exception;
 use Symfony\Component\Console\Input\InputArgument;
@@ -15,6 +16,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 class AlmaPaymentCreateCommand extends AbstractWriteAlmaCommand
 {
     use DisplayOutputPaymentTrait;
+    use DisplayOutputPayloadTrait;
     protected static $defaultName = 'alma:payment:create';
     protected static $defaultDescription = 'Create payment with given informations then output informations about payload & created payment';
 
@@ -61,16 +63,10 @@ class AlmaPaymentCreateCommand extends AbstractWriteAlmaCommand
     protected function configure(): void
     {
         $this->configureOutputPaymentOptions();
+        $this->configureOutputPayloadOptions();
         $this
             ->addArgument('amount', InputArgument::REQUIRED, 'A valid amount to perform payment (give it in cents)')
-            ->addOption('output-payload', 'p', InputOption::VALUE_NONE, 'should I output payload before create payment')
-            ->addOption(
-                'format-payload',
-                'f',
-                InputOption::VALUE_OPTIONAL,
-                'should I format output payload (works with --output-payload) - possible values are table, dump, json, var_dump, var_export',
-                'table'
-            )
+
             ->addOption(
                 'dry-run',
                 'd',
@@ -259,12 +255,7 @@ class AlmaPaymentCreateCommand extends AbstractWriteAlmaCommand
             $payloadAddresses['payment-billing-address'] = [];
         }
 
-        if ($input->getOption('output-payload')) {
-            $outputFormat = $input->getOption('format-payload');
-            if (!$this->outputFormat($outputFormat, $data, $payloadAddresses)) {
-                return self::INVALID;
-            }
-        }
+        $this->outputPayload($input, $data, $payloadAddresses);
 
         if ($input->getOption('dry-run')) {
             $this->io->info('Command called with dry run ... we will not perform the payment creation');
