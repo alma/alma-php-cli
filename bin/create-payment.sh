@@ -7,7 +7,9 @@ env="${1:-$default_env}"
 shift
 amount="${1:-$default_amount}"
 shift
-default_opt="--output-payload --format-payload dump --verbose --dry-run $@"
+default_opt=""
+default_opt="$default_opt --output-payload --format-payload dump --verbose --dry-run"
+default_opt="$default_opt --installments 3 --deferred_days 0 $@"
 echo
 echo "default_opt:'$default_opt'"
 echo "edit the $0 script if you want change options & console arguments"

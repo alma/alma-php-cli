@@ -69,11 +69,12 @@ class AlmaPaymentCreateCommand extends AbstractWriteAlmaCommand
 
             ->addOption(
                 'dry-run',
-                'd',
+                null,
                 InputOption::VALUE_NONE,
                 'do not perform really the create payment action (useful if you just want to see the payload)'
             )
             ->addOption('installments', 'i', InputOption::VALUE_REQUIRED, 'pnx installments count', 3)
+            ->addOption('deferred_days', 'd', InputOption::VALUE_REQUIRED, 'deferred days', 0)
             ->addOption(
                 'deferred_trigger',
                 null,
@@ -139,12 +140,18 @@ class AlmaPaymentCreateCommand extends AbstractWriteAlmaCommand
     /**
      * @param int            $amount
      * @param int            $installmentsCount
+     * @param int            $deferredDays
      * @param InputInterface $input
      *
      * @return array[]
      * @throws Exception
      */
-    protected function defaultPayload(int $amount, int $installmentsCount, InputInterface $input): array
+    protected function defaultPayload(
+        int $amount,
+        int $installmentsCount,
+        int $deferredDays,
+        InputInterface $input
+    ): array
     {
         $customer = [
             'first_name' => $input->getOption('first-name'),
@@ -174,6 +181,7 @@ class AlmaPaymentCreateCommand extends AbstractWriteAlmaCommand
 	        'payment' => [
                 'purchase_amount'    => $amount,
                 'installments_count' => $installmentsCount,
+                'deferred_days'      => $deferredDays,
             ],
         ];
         if ($returnUrl) {
@@ -218,8 +226,14 @@ class AlmaPaymentCreateCommand extends AbstractWriteAlmaCommand
 
             return self::INVALID;
         }
+        $deferredDays = intval($input->getOption('deferred_days'));
+        if ($deferredDays < 0) {
+            $this->io->error('Installments count must be >= 0');
 
-        $data = $this->defaultPayload($amount, $installmentsCount, $input);
+            return self::INVALID;
+        }
+
+        $data = $this->defaultPayload($amount, $installmentsCount, $deferredDays, $input);
 
         if ($input->getOption('deferred_trigger')) {
             $data['payment']['deferred']             = 'trigger';
@@ -236,10 +250,12 @@ class AlmaPaymentCreateCommand extends AbstractWriteAlmaCommand
             $payloadAddresses['customer-address'] = $customerAddress;
         }
         if ($this->checkArrayValues($billingAddress)) {
+            $customerAddresses[]                = $billingAddress;
             $data['payment']['billing_address'] = $billingAddress;
             $payloadAddresses['payment-billing-address'] = $billingAddress;
         }
         if ($this->checkArrayValues($shippingAddress)) {
+            $customerAddresses[]                 = $shippingAddress;
             $data['payment']['shipping_address'] = $shippingAddress;
             $payloadAddresses['payment-shipping-address'] = $shippingAddress;
         }
